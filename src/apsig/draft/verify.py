@@ -26,7 +26,7 @@ class draftVerifier:
             signature_parts[key.strip()] = value.strip().strip('"')
 
         signature = base64.b64decode(signature_parts["signature"])
-        keyId = signature_parts["keyId"]
+        #keyId = signature_parts["keyId"]
         algorithm = signature_parts["algorithm"]
 
         if algorithm != "rsa-sha256":
