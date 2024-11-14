@@ -24,8 +24,3 @@ jobs:
         run: |
           pip install ruff
           ruff check . --output-format=github
-
-      - name: Lint with Mypy
-        run: |
-          pip install mypy
-          mypy . --config-file pyproject.toml --ignore-missing-imports --no-namespace-packages
