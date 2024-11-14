@@ -1,9 +1,7 @@
 from pyld import jsonld
 from nacl.signing import SigningKey
 import hashlib
-import json
 import base64
-from datetime import datetime
 from email.utils import formatdate
 from nacl.exceptions import BadSignatureError
 from urllib.parse import urlparse
@@ -40,7 +38,7 @@ class JSONLDSigner:
 
     def verify(self, signature_header, normalized_data, headers):
         signature_bytes = base64.b64decode(signature_header['signature'])
-        signed_headers = signature_header['headers'].split()
+        #signed_headers = signature_header['headers'].split()
         if len(signature_bytes) != 64:
             return False
         headers['date'] = formatdate(timeval=None, localtime=False, usegmt=True)
