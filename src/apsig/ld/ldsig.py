@@ -1,5 +1,3 @@
-# jsonld_signature.py
-
 from pyld import jsonld
 from nacl.signing import SigningKey
 import hashlib

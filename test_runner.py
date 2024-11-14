@@ -1,4 +1,3 @@
-import sys
 from unittest import TestLoader
 from unittest import TextTestRunner
 
