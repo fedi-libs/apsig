@@ -1,4 +1,4 @@
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
@@ -12,7 +12,7 @@ class draftSigner:
         hash_bytes = digest.finalize()
         return "SHA-256=" + base64.b64encode(hash_bytes).decode("utf-8")
 
-    def sign(private_key, method: str, url: str, headers: dict, key_id: str, body: bytes="") -> dict:
+    def sign(private_key: rsa.RSAPrivateKey, method: str, url: str, headers: dict, key_id: str, body: bytes="") -> dict:
         parsed_url = urlparse(url)
         request_target = f"(request-target): {method.lower()} {parsed_url.path}"
 

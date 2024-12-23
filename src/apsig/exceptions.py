@@ -1,0 +1,2 @@
+class MissingSignature(Exception):
+    pass
