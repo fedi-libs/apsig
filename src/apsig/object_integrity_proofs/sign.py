@@ -33,7 +33,7 @@ class OIPSigner:
             "verificationMethod": publickey_url,
             "proofPurpose": "assertionMethod",
             "proofValue": multibase_encode(signature, "base58btc"),
-            "created": utcnow().isoformat() + "Z"
+            "created": utcnow().isoformat()# + "Z"
         }
 
         json_object['proof'] = proof
