@@ -3,6 +3,8 @@ import hashlib
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
+from ..utils.multibase import multibase_decode
+
 class OIPVerifier:
     def __init__(self, public_key):
         self.public_key = public_key
@@ -25,7 +27,7 @@ class OIPVerifier:
             raise ValueError("Proof not found in the object")
 
         proof = json_object['proof']
-        proof_value = bytes.fromhex(proof['proofValue'])
+        proof_value = multibase_decode(proof['proofValue'])
         
         proofless_object = json_object.copy()
         del proofless_object['proof']

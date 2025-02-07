@@ -55,4 +55,4 @@ def multibase_decode(encoded: str) -> bytes:
     elif prefix == 'z':
         return base58_decode(payload)
     else:
-        raise ValueError("Unsupported multibase prefix")
+        raise ValueError('Unsupported multibase prefix "{}"'.format(prefix))

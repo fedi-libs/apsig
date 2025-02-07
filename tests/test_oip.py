@@ -47,7 +47,7 @@ class TestOIPSignerVerifier(unittest.TestCase):
         signer = OIPSigner(self.private_key)
         signed_object = signer.sign(json_object, self.publickey_url)
 
-        signed_object['proof']['proofValue'] = "00" # Falsified signatures
+        signed_object['proof']['proofValue'] = "z2GZ2B14kbfTvNdoiKWbY56uBkWCC2c36ErARr15nM67X4rR4cqe2yQYsNHdsjU4ptzfzJujDFyCmp1diiAxLFoK3" # Dummy Text
 
         verifier = OIPVerifier(self.public_key)
         is_valid = verifier.verify(signed_object)
