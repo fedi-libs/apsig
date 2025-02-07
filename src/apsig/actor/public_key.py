@@ -23,7 +23,7 @@ class KeyUtil:
 
     def encode_multibase(self):
         if isinstance(self.public_key, rsa.RSAPublicKey):
-            return multibase_encode(self.public_key.public_bytes(encoding=serialization.Encoding.PEM), "base58btc")
+            return multibase_encode(self.public_key.public_bytes(encoding=serialization.Encoding.DER, format=serialization.PublicFormat.PKCS1), "base58btc")
         return multibase_encode(self.public_key.public_bytes_raw(), "base58btc")
 
     def decode_multibase(self, data: str, key_type: str="ed25519"):
@@ -41,6 +41,6 @@ class KeyUtil:
                 raise Exception("Invalid ed25519 public key passed.") # Tempolary, will replaced apsig's exception
         elif key_type.lower() == "rsa":
             try:
-                return serialization.load_pem_public_key(decoded)
+                return serialization.load_der_public_key(decoded)
             except ValueError:
                 raise Exception("Invalid rsa public key passed.") # Tempolary, will replaced apsig's exception
