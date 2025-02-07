@@ -24,7 +24,7 @@ classifiers = [
         'Topic :: Security',
         'Natural Language :: English',
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 readme = "README.md"
 license = {text = "MIT"}
 urls.Source = "https://github.com/AmaseCocoa/apsig"
@@ -39,3 +39,9 @@ distribution = true
 
 [tool.pdm.scripts]
 test = "python test_runner.py"
+[dependency-groups]
+e2e = [
+    "aiohttp>=3.11.12",
+    "notturno[asgi]>=0.1.2",
+    "trio>=0.28.0",
+]
