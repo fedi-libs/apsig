@@ -1,5 +1,6 @@
 from apsig import KeyUtil
 
+
 def fake(publicKeys: dict):
     keyutl = KeyUtil(private_key=publicKeys["ed25519-key"])
     return {
@@ -13,6 +14,8 @@ def fake(publicKeys: dict):
         ],
         "type": "Person",
         "preferredUsername": "apsig_dev",
+        "name": "APSig Test Actor",
+        "summary": "testing purposes only, don't use on production environment!",
         "id": "https://apsig.amase.cc/actor",
         "inbox": "https://apsig.amase.cc/actor/inbox",
         "outbox": "https://apsig.amase.cc/actor/outbox",
@@ -27,6 +30,9 @@ def fake(publicKeys: dict):
         "publicKey": {
             "id": "https://apsig.amase.cc/actor#main-key",
             "controller": "https://apsig.amase.cc/actor",
-            "publicKeyPem": publicKeys["publicKeyPem"].decode("utf-8")
-        }
+            "owner": "https://apsig.amase.cc/actor",
+            "publicKeyPem": publicKeys["publicKeyPem"].decode("utf-8"),
+            "type": "Key"
+        },
+        "url": "https://apsig.amase.cc/actor"
     }
