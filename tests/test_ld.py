@@ -4,7 +4,7 @@ from apsig import LDSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from apsig.exceptions import MissingSignature
+from apsig.exceptions import MissingSignature, VerificationFailed, UnknownSignature
 
 class TestJsonLdSigner(unittest.TestCase):
     def setUp(self):
@@ -26,14 +26,14 @@ class TestJsonLdSigner(unittest.TestCase):
         self.signed_data = self.ld.sign(self.data, "https://example.com/users/johndoe#main-key", private_key=self.private_key)
 
     def test_sign_and_verify(self):
-        is_valid = self.ld.verify(self.signed_data, self.public_key)
-        self.assertTrue(is_valid)
+        self.ld.verify(self.signed_data, self.public_key)
 
     def test_verify_invalid_signature_value(self):
         signed_data = self.ld.sign(self.data, "https://example.com/users/johndoe#main-key", private_key=self.private_key)
         signed_data["signature"]["signatureValue"] = "invalid_signature"
-        is_valid = self.ld.verify(signed_data, self.public_key)
-        self.assertFalse(is_valid)
+        with self.assertRaises(VerificationFailed) as context:
+            self.ld.verify(signed_data, self.public_key)
+        self.assertEqual(str(context.exception), "LDSignature mismatch")
         
     def test_verify_missing_signature(self):
         try:
@@ -46,8 +46,9 @@ class TestJsonLdSigner(unittest.TestCase):
     def test_verify_invalid_signature(self):
         signed_data = self.ld.sign(self.data, "https://example.com/users/johndoe#main-key", private_key=self.private_key)
         signed_data["signature"]["type"] = "RsaSignatureHoge"
-        is_fail = self.ld.verify(signed_data, self.public_key)
-        self.assertTrue(is_fail)
+        with self.assertRaises(UnknownSignature) as context:
+            self.ld.verify(signed_data, self.public_key)
+        self.assertEqual(str(context.exception), "Unknown signature type")
 
 if __name__ == '__main__':
     unittest.main()

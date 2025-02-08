@@ -1,37 +1,30 @@
-import hashlib
-import json
+# This code was ported from Takahe.
+
 import datetime
-import os
 import base64
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+
+from pyld import jsonld
+from cryptography.exceptions import InvalidSignature
 
 from .__polyfill.datetime import utcnow
-
+from multiformats import multibase, multicodec
+from .exceptions import MissingSignature, UnknownSignature, VerificationFailed
 
 class LDSignature:
     def __init__(self):
         pass
 
-    def _options_hash(self, doc):
-        doc = dict(doc["signature"])
-        for k in ["type", "id", "signatureValue"]:
-            doc.pop(k, None)
-        doc["@context"] = "https://w3id.org/identity/v1"
-
-        normalized = json.dumps(doc, sort_keys=True)
-        h = hashlib.sha256()
-        h.update(normalized.encode("utf-8"))
-        return h.hexdigest()
-
-    def _doc_hash(self, doc):
-        doc = dict(doc)
-        doc.pop("signature", None)
-
-        normalized = json.dumps(doc, sort_keys=True)
-        h = hashlib.sha256()
-        h.update(normalized.encode("utf-8"))
-        return h.hexdigest()
+    def __normalized_hash(self, data):
+        norm_form = jsonld.normalize(
+            data, {"algorithm": "URDNA2015", "format": "application/n-quads"}
+        )
+        digest = hashes.Hash(hashes.SHA256())
+        digest.update(norm_form.encode("utf8"))
+        return digest.finalize().hex().encode("ascii")
 
     def sign(
         self,
@@ -40,48 +33,56 @@ class LDSignature:
         private_key: rsa.RSAPrivateKey,
         options: dict = None,
         created: datetime.datetime = None,
-        domain: str = None
     ):
-        options = {
-            'type': 'RsaSignature2017',
-            'creator': creator,
-            'nonce': os.urandom(16).hex(),
-            'created': (created or utcnow().replace(microsecond=0)).isoformat() + "Z"
+        options: dict[str, str] = {
+            "@context": "https://w3c-ccg.github.io/security-vocab/contexts/security-v1.jsonld", # "https://w3id.org/identity/v1"
+            "creator": creator,
+            "created": created or utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
         }
-        if domain:
-            options['domain'] = domain
-        to_be_signed = json.dumps({**doc, **options}, sort_keys=True)
-        signature = private_key.sign(
-            to_be_signed.encode("utf-8"),
-            padding.PKCS1v15(),
-            hashes.SHA256(),
-        )
+
+        to_be_signed = self.__normalized_hash(options) + self.__normalized_hash(doc)
+
+        signature = base64.b64encode(private_key.sign(
+            to_be_signed, padding.PKCS1v15(), hashes.SHA256()
+        ))
+
         return {
             **doc,
             "signature": {
                 **options,
-                "signatureValue": base64.b64encode(signature).decode('utf-8')
-            }
+                "type": "RsaSignature2017",
+                "signatureValue": signature.decode("ascii"),
+            },
         }
 
-    def verify(self, doc, public_key):
-        to_be_signed = self._options_hash(doc) + self._doc_hash(doc)
-        signature = doc["signature"]["signatureValue"]
-        signature_bytes = base64.b64decode(signature)
-
+    def verify(self, doc: dict, public_key: rsa.RSAPublicKey | str):
+        if isinstance(public_key, str):
+            codec, data = multicodec.unwrap(multibase.decode(public_key))
+            if codec.name != "rsa-pub":
+                raise ValueError("public_key must be RSA PublicKey.")
+            public_key = serialization.load_pem_public_key(data, backend=default_backend())
+        try:
+            document = doc.copy()
+            signature = document.pop("signature")
+            options = {
+                "@context": "https://w3c-ccg.github.io/security-vocab/contexts/security-v1.jsonld",
+                "creator": signature["creator"],
+                "created": signature["created"],
+            }
+        except KeyError:
+            raise MissingSignature("Invalid signature section")
+        if signature["type"].lower() != "rsasignature2017":
+            raise UnknownSignature("Unknown signature type")
+        final_hash = self.__normalized_hash(options) + self.__normalized_hash(document)
         try:
             public_key.verify(
-                signature_bytes,
-                to_be_signed.encode("utf-8"),
-                padding.PSS(
-                    mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH,
-                ),
+                base64.b64decode(signature["signatureValue"]),
+                final_hash,
+                padding.PKCS1v15(),
                 hashes.SHA256(),
             )
-            return True
-        except Exception:
-            return False
+        except InvalidSignature:
+            raise VerificationFailed("LDSignature mismatch")
 
 
 """
