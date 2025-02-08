@@ -1,5 +1,5 @@
 # `apsig.draft`
-
+HTTP signature implementation based on [draft-cavage-http-signatures-12](https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures-12).
 ## `apsig.draftSigner`
 ### Overview
 The `sign` method generates a digital signature based on the given HTTP request details and adds it to the HTTP headers.
