@@ -1,6 +1,6 @@
 # `apsig.proof`
 ## Overview
-The `ProofSigner` and `ProofVerifier` classes implement the functionality for creating and verifying Object Integrity Proofs as described in FEP-8b32: Object Integrity Proofs.
+The `ProofSigner` and `ProofVerifier` classes implement the functionality for creating and verifying Object Integrity Proofs as described in [FEP-8b32](https://codeberg.org/fediverse/fep/src/branch/main/fep/8b32/fep-8b32.md).
 
 ## Class: `ProofSigner`
 
