@@ -9,6 +9,7 @@ dependencies = [
     "cryptography>=43.0.1",
     "pynacl>=1.5.0",
     "multiformats>=0.3.1.post4",
+    "jcs>=0.2.1",
 ]
 classifiers = [
         'Development Status :: 3 - Alpha',
