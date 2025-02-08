@@ -46,6 +46,6 @@ test = "python test_runner.py"
 [dependency-groups]
 e2e = [
     "aiohttp>=3.11.12",
-    "notturno[asgi]>=0.1.2",
+    "notturno[asgi]>=0.1.4",
     "trio>=0.28.0",
 ]
