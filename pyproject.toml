@@ -42,6 +42,7 @@ distribution = true
 
 [tool.pdm.scripts]
 test = "python test_runner.py"
+
 [dependency-groups]
 e2e = [
     "aiohttp>=3.11.12",
