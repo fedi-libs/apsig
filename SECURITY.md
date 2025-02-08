@@ -6,8 +6,8 @@ apsig supports the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.2.x   | :white_check_mark: |
-| < 0.1.x | :x:                |
+| 0.3.x   | :white_check_mark: |
+| < 0.2.x | :x:                |
 
 ## Reporting a Vulnerability
 You can create an apsig vulnerability report at [This form](https://github.com/AmaseCocoa/apsig/security/advisories/new).
