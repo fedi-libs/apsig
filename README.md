@@ -15,4 +15,5 @@ pip install apsig
 ```
 ## Thanks
 - [Hong Minhee](https://github.com/dahlia) ([Fedify](https://fedify.dev/) Author)
+- [Takahē](https://github.com/jointakahe/takahe) Authors (apsig.LDSignature was ported from Takahē)
 - And All Contributor/Users
