@@ -6,7 +6,31 @@ from multiformats import multibase, multicodec
 
 
 class ProofVerifier:
+    """
+    A class for verifying documents signed using the Ed25519 signature algorithm, 
+    implementing Object Integrity Proofs as specified in FEP-8b32.
+    
+    Attributes:
+        public_key (ed25519.Ed25519PublicKey): The Ed25519 public key used for verification.
+
+    Methods:
+        verify_proof(secured_document: dict) -> dict:
+            Verifies the proof contained in the secured document.
+        verify(secured_document: dict) -> dict:
+            An alias for the verify_proof method.
+    """
+
     def __init__(self, public_key: ed25519.Ed25519PublicKey | str):
+        """
+        Initializes the ProofVerifier with a public key.
+
+        Args:
+            public_key (ed25519.Ed25519PublicKey | str): 
+                The Ed25519 public key as an object or a multibase-encoded string.
+
+        Raises:
+            TypeError: If the provided public key is not of type Ed25519.
+        """
         if isinstance(public_key, str):
             codec, data = multicodec.unwrap(multibase.decode(public_key))
             if codec.name != "ed25519-pub":
@@ -43,6 +67,24 @@ class ProofVerifier:
         return proof_config_hash + transformed_document_hash
 
     def verify_proof(self, secured_document: dict):
+        """
+        Verifies the proof contained in the secured document.
+
+        This method checks the integrity and authenticity of the secured document 
+        by validating the associated proof. It verifies the signature against the 
+        hash of the transformed document and the canonical proof configuration.
+
+        Args:
+            secured_document (dict): The document containing the proof to be verified.
+
+        Returns:
+            dict: A dictionary containing:
+                - bool: `verified`: Indicates whether the proof verification was successful.
+                - dict: `verifiedDocument`: The unsecured document if verification was successful, otherwise `None`.
+
+        Raises:
+            ValueError: If the proof is not found in the document.
+        """
         if not secured_document.get("proof"):
             raise ValueError("Proof not found in the object")
         unsecured_document = secured_document.copy()
@@ -73,4 +115,17 @@ class ProofVerifier:
         except Exception:
             return {"verified": False, "verifiedDocument": None}
 
-    verify = verify_proof
+    def verify(self, secured_document: dict) -> dict:
+        """
+        An alias for the verify_proof method.
+
+        This method calls verify_proof to perform the actual verification 
+        of the proof contained in the secured document.
+
+        Args:
+            secured_document (dict): The document containing the proof to be verified.
+
+        Returns:
+            dict: The result of the proof verification.
+        """
+        return self.verify_proof(secured_document)

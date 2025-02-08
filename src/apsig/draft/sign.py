@@ -6,17 +6,33 @@ import base64
 from urllib.parse import urlparse
 
 class draftSigner:
-    def generate_digest(body):
+    def _generate_digest(body: bytes | str):
         digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
         digest.update(body.encode("utf-8"))
         hash_bytes = digest.finalize()
         return "SHA-256=" + base64.b64encode(hash_bytes).decode("utf-8")
 
     def sign(private_key: rsa.RSAPrivateKey, method: str, url: str, headers: dict, key_id: str, body: bytes="") -> dict:
+        """Signs an HTTP request with a digital signature.
+
+        Args:
+            private_key (rsa.RSAPrivateKey): The RSA private key used to sign the request.
+            method (str): The HTTP method (e.g., "GET", "POST").
+            url (str): The URL of the request.
+            headers (dict): A dictionary of HTTP headers that will be signed.
+            key_id (str): The key identifier to include in the signature header.
+            body (bytes, optional): The request body. Defaults to an empty byte string.
+
+        Returns:
+            dict: The HTTP headers with the signature added.
+
+        Raises:
+            ValueError: If the signing process fails due to invalid parameters.
+        """
         parsed_url = urlparse(url)
         request_target = f"(request-target): {method.lower()} {parsed_url.path}"
 
-        digest = draftSigner.generate_digest(body)
+        digest = draftSigner._generate_digest(body)
         headers["digest"] = digest
 
         signature_headers = [request_target]

@@ -15,6 +15,20 @@ from multiformats import multibase, multicodec
 from .exceptions import MissingSignature, UnknownSignature, VerificationFailed
 
 class LDSignature:
+    """A class for signing and verifying Linked Data signatures using the RSA signature algorithm. 
+
+    Attributes:
+        private_key (rsa.RSAPrivateKey): The RSA private key used for signing.
+        public_key (rsa.RSAPublicKey): The corresponding RSA public key.
+
+    Methods:
+        sign(doc: dict, creator: str, private_key: rsa.RSAPrivateKey, options: dict = None, created: datetime.datetime = None) -> dict:
+            Signs the provided document using the specified RSA private key.
+
+        verify(doc: dict, public_key: rsa.RSAPublicKey | str) -> bool:
+            Verifies the signature of the provided document against the given public key.
+    """
+
     def __init__(self):
         pass
 
@@ -34,6 +48,19 @@ class LDSignature:
         options: dict = None,
         created: datetime.datetime = None,
     ):
+        """Signs the provided document using the specified RSA private key.
+
+        Args:
+            doc (dict): The document to be signed.
+            creator (str): The identifier of the creator of the document.
+            private_key (rsa.RSAPrivateKey): The RSA private key used for signing.
+            options (dict, optional): Additional signing options. Defaults to None.
+            created (datetime.datetime, optional): The timestamp when the signature is created. 
+                Defaults to the current UTC time if not provided.
+
+        Returns:
+            dict: The signed document containing the original data and the signature.
+        """
         options: dict[str, str] = {
             "@context": "https://w3c-ccg.github.io/security-vocab/contexts/security-v1.jsonld", # "https://w3id.org/identity/v1"
             "creator": creator,
@@ -56,6 +83,20 @@ class LDSignature:
         }
 
     def verify(self, doc: dict, public_key: rsa.RSAPublicKey | str):
+        """Verifies the signature of the provided document against the given public key.
+
+        Args:
+            doc (dict): The signed document to verify.
+            public_key (rsa.RSAPublicKey | str): The RSA public key in PEM format or as a multibase-encoded string.
+
+        Returns:
+            bool: True if the signature is valid; otherwise, an exception is raised.
+
+        Raises:
+            MissingSignature: If the signature section is missing in the document.
+            UnknownSignature: If the signature type is not recognized.
+            VerificationFailed: If the signature verification fails.
+        """
         if isinstance(public_key, str):
             codec, data = multicodec.unwrap(multibase.decode(public_key))
             if codec.name != "rsa-pub":
@@ -83,26 +124,3 @@ class LDSignature:
             )
         except InvalidSignature:
             raise VerificationFailed("LDSignature mismatch")
-
-
-"""
-if __name__ == "__main__":
-    # RSA鍵ペアを生成
-    private_key, public_key = LDSignature.generate_rsa_keypair()
-
-    # ドキュメントの例
-    document = {
-        "actor": "http://example.com/alice",
-        "signature": {}
-    }
-
-    # 署名の生成
-    ld_signature = LDSignature()
-    ld_signature.sign(document, private_key)
-    print("Generated Document with Signature:")
-    print(json.dumps(document, indent=2))
-
-    # 署名の検証
-    is_valid = ld_signature.verify(document, public_key)
-    print("Is the signature valid?", is_valid)
-"""
