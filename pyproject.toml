@@ -8,6 +8,7 @@ authors = [
 dependencies = [
     "cryptography>=43.0.1",
     "pynacl>=1.5.0",
+    "multiformats>=0.3.1.post4",
 ]
 classifiers = [
         'Development Status :: 3 - Alpha',
