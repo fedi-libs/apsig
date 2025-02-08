@@ -41,7 +41,8 @@ build-backend = "pdm.backend"
 distribution = true
 
 [tool.pdm.scripts]
-test = "python test_runner.py"
+test = "python -m unittest discover -s tests"
+
 [dependency-groups]
 e2e = [
     "aiohttp>=3.11.12",
