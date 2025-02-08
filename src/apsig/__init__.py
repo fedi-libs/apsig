@@ -1,8 +1,17 @@
-from .actor.public_key import KeyUtil
-from .object_integrity_proofs.sign import OIPSigner
-from .object_integrity_proofs.verify import OIPVerifier
+from .actor.keytools import KeyUtil
 from .draft.sign import draftSigner
 from .draft.verify import draftVerifier
 from .ld_signature import LDSignature
+from .proof.sign import ProofSigner
+from .proof.verify import ProofVerifier
 
-__all__ = ["OIPSigner", "OIPVerifier" , "draftSigner", "draftVerifier", "LDSignature", "KeyUtil"]
+__all__ = [
+    "OIPSigner",
+    "OIPVerifier",
+    "ProofSigner",
+    "ProofVerifier",
+    "draftSigner",
+    "draftVerifier",
+    "LDSignature",
+    "KeyUtil",
+]
