@@ -1,0 +1,76 @@
+import hashlib
+
+import jcs
+from cryptography.hazmat.primitives.asymmetric import ed25519
+from multiformats import multibase, multicodec
+
+
+class ProofVerifier:
+    def __init__(self, public_key: ed25519.Ed25519PublicKey | str):
+        if isinstance(public_key, str):
+            codec, data = multicodec.unwrap(multibase.decode(public_key))
+            if codec.name != "ed25519-pub":
+                raise TypeError("PublicKey must be ed25519.")
+            self.public_key: ed25519.Ed25519PublicKey = (
+                ed25519.Ed25519PublicKey.from_public_bytes(data)
+            )
+        else:
+            self.public_key: ed25519.Ed25519PublicKey = public_key
+
+    def verify_signature(self, signature, hash_data):
+        self.public_key.verify(signature, hash_data)
+
+    def canonicalize(self, document):
+        return jcs.canonicalize(document)
+
+    def transform(self, unsecured_document, options):
+        if (
+            options["type"] != "DataIntegrityProof"
+            or options["cryptosuite"] != "eddsa-jcs-2022"
+        ):
+            raise ValueError("PROOF_VERIFICATION_ERROR")
+
+        canonical_document = self.canonicalize(unsecured_document)
+        return canonical_document
+
+    def hashing(self, transformed_document, canonical_proof_config):
+        transformed_document_hash = hashlib.sha256(
+            transformed_document.encode("utf-8") if not isinstance(transformed_document, bytes) else transformed_document
+        ).digest()
+        proof_config_hash = hashlib.sha256(
+            canonical_proof_config.encode("utf-8") if not isinstance(canonical_proof_config, bytes) else canonical_proof_config
+        ).digest()
+        return proof_config_hash + transformed_document_hash
+
+    def verify_proof(self, secured_document: dict):
+        if not secured_document.get("proof"):
+            raise ValueError("Proof not found in the object")
+        unsecured_document = secured_document.copy()
+        proof_value = unsecured_document["proof"].pop("proofValue")
+        proof_bytes = multibase.decode(proof_value)
+
+        proof_options = unsecured_document["proof"]
+
+        if "@context" in proof_options:
+            if isinstance(secured_document["@context"], str):
+                if not secured_document["@context"].startswith(
+                    tuple(proof_options["@context"])
+                ):
+                    return {"verified": False, "verifiedDocument": None}
+            elif isinstance(secured_document["@context"], list):
+                if not any(item.startswith(tuple(proof_options["@context"])) for item in secured_document["@context"] if isinstance(item, str)):
+                    return {"verified": False, "verifiedDocument": None}
+
+        unsecured_document["@context"] = proof_options["@context"]
+
+        transformed_data = self.transform(unsecured_document, proof_options)
+        proof_config = self.canonicalize(proof_options)
+        hash_data = self.hashing(transformed_data, proof_config)
+
+        try:
+            self.verify_signature(proof_bytes, hash_data)
+            return {"verified": True, "verifiedDocument": unsecured_document}
+        except Exception:
+            return {"verified": False, "verifiedDocument": None}
+
+    verify = verify_proof
