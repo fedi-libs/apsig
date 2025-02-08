@@ -21,13 +21,13 @@ class KeyUtil:
             self.private_key = private_key
             self.public_key = private_key.public_key()
 
-    def encode_multibase(self):
+    def encode_multibase(self, private: bool=False):
         if isinstance(self.public_key, rsa.RSAPublicKey):
             return multibase.encode(self.public_key.public_bytes(encoding=serialization.Encoding.DER, format=serialization.PublicFormat.PKCS1).hex(), "base58btc")
         prefixed = multicodec.wrap("ed25519-pub", self.public_key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw))
         return multibase.encode(prefixed, "base58btc") # .hex().encode("utf-8")
 
-    def decode_multibase(self, data: str, key_type: str="ed25519"):
+    def decode_multibase(self, data: str, private: bool=False):
         """Get PublicKey from Multibase.
 
         Args:
@@ -35,13 +35,16 @@ class KeyUtil:
             key_type (str): Type of key derived from multibase. The default is ed25519.
         """
         decoded = multibase.decode(data)
-        if key_type.lower() == "ed25519":
+        codec, data = multicodec.unwrap(decoded)
+        if codec.name == "ed25519-pub":
             try:
-                return ed25519.Ed25519PublicKey.from_public_bytes(decoded)
+                return ed25519.Ed25519PublicKey.from_public_bytes(data)
             except InvalidKey:
                 raise Exception("Invalid ed25519 public key passed.") # Tempolary, will replaced apsig's exception
-        elif key_type.lower() == "rsa":
+        elif codec.name == "rsa-pub":
             try:
-                return serialization.load_der_public_key(decoded)
+                return serialization.load_der_public_key(data)
             except ValueError:
                 raise Exception("Invalid rsa public key passed.") # Tempolary, will replaced apsig's exception
+        else:
+            raise ValueError("Unsupported Codec: {}".format(codec.name))
