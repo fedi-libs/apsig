@@ -32,7 +32,6 @@ jobs:
       - name: Post Lint Results
         run: |
           comment_body=$(<lint_report.txt)
-          echo "# Lint results\n\`\`\`\n$comment_body\n\`\`\`" > comment.md
-          gh pr comment ${{ github.event.pull_request.number }} --body "$(cat comment.md)"
+          echo "# Lint results\n\`\`\`\n$comment_body\n\`\`\`" | gh pr comment ${{ github.event.pull_request.number }} --body-file -
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
