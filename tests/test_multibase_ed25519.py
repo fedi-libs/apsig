@@ -23,7 +23,7 @@ class TestSignatureFunctions(unittest.TestCase):
 
     def test_decode(self):
         multibase = self.kutil.encode_multibase()
-        result = self.kutil.decode_multibase(multibase, key_type="ed25519")
+        result = self.kutil.decode_multibase(multibase)
         if result:
             success = True
         else:
