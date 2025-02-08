@@ -1,8 +1,7 @@
 import datetime
-from pprint import pprint
 import random
-
 import aiohttp
+import json
 import uvicorn
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -11,7 +10,7 @@ from faker.actor import fake
 from notturno import Notturno
 from notturno.models.request import Request
 
-from apsig import ProofSigner
+from apsig import LDSignature
 
 app = Notturno()
 ed_privatekey = ed25519.Ed25519PrivateKey.generate()
@@ -26,7 +25,7 @@ actor_obj = fake(
         ),
     }
 )
-Proof = ProofSigner(private_key=ed_privatekey)
+ld = LDSignature()
 now = datetime.datetime.now().isoformat(sep="T", timespec="seconds") + "Z"
 
 
@@ -79,17 +78,13 @@ async def send(request: Request):
                 "content": "Hello world",
             },
         }
-        signed = Proof.sign(
-            unsecured_document=body,
-            options={
-                "type": "DataIntegrityProof",
-                "cryptosuite": "eddsa-jcs-2022",
-                "proofPurpose": "assertionMethod",
-                "verificationMethod": "https://apsig.amase.cc/actor#ed25519-key",
-                "created": now,
-            },
+        signed = ld.sign(
+            body,
+            "https://apsig.amase.cc/actor#main-key", 
+            private_key=rsa_privatekey
         )
-        pprint(signed)
+        with open("./test.json", "w") as f:
+            json.dump(signed, f)
         async with session.post(
             url.decode("utf-8"),
             json=signed,
@@ -97,7 +92,6 @@ async def send(request: Request):
         ) as resp:
             print(await resp.text())
             print(resp.status)
-
 
 pin = random.randint(1000, 9999)
 print("Server Pin is: " + str(pin))
