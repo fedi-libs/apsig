@@ -1,7 +1,6 @@
 import unittest
 
 from cryptography.hazmat.primitives.asymmetric import ed25519
-from cryptography.hazmat.primitives import serialization
 
 from apsig import ProofSigner, ProofVerifier
 from multiformats import multibase, multicodec
