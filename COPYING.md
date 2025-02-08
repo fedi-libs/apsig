@@ -3,7 +3,7 @@ This software contains LDSignature code ported from [jointakahe/takahe](https://
 
 The original code for apsig.LDSignature (from Takahe) was created by this authors:
 
-- jointakahe (Andrew Godwin)
+- [Andrew Godwin](https://github.com/andrewgodwin)
 
 Code ported (modified) by apsig from Takahe (LDSignature class)
 - [/core/signatures.py](https://github.com/jointakahe/takahe/blob/d45f22c9c2f5e4feec9f9692c36b8385d51ec981/core/signatures.py#L289)
