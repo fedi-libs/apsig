@@ -23,6 +23,6 @@ jobs:
       - name: Install PDM
         run: pip install pdm
       - name: Install dependencies
-        run: pdm install --frozen-lockfile
+        run: pdm install --frozen-lockfile --prod
       - name: Run tests
         run: pdm run test
