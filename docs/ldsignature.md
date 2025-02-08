@@ -1,14 +1,6 @@
 # `apsig.LDSignature`
 ## Overview
-The `LDSignature` class provides methods for signing and verifying Linked Data signatures using RSA keys. It utilizes the W3C's security vocabulary and JSON-LD normalization to ensure the integrity and authenticity of the signed documents.
-
-## Dependencies
-This code relies on the following libraries:
-- `cryptography`: For cryptographic operations.
-- `pyld`: For JSON-LD processing.
-- `multiformats`: For encoding and decoding multibase and multicodec formats.
-
-## Class: `LDSignature`
+The `LDSignature` class provides methods for signing and verifying Linked Data signatures 1.0 using RSA keys. It utilizes the W3C's security vocabulary and JSON-LD normalization to ensure the integrity and authenticity of the signed documents.
 
 ### Methods
 

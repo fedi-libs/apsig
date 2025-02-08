@@ -1,6 +1,6 @@
 # `apsig.draft`
 HTTP signature implementation based on [draft-cavage-http-signatures-12](https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures-12).
-## `apsig.draftSigner`
+## `apsig.draft.draftSigner`
 ### Overview
 The `sign` method generates a digital signature based on the given HTTP request details and adds it to the HTTP headers.
 
@@ -61,7 +61,7 @@ print(signed_headers)
 ### Notes
 - You need to have an RSA private key ready before generating the signature.
 - The generated signature will be added to the HTTP request headers and sent along with the request. 
-## `apsig.draftVerifier`
+## `apsig.draft.draftVerifier`
 
 ### Overview
 The `verify` method checks the validity of a digital signature based on the provided HTTP request details, public key, and request body. It ensures that the signature is correct, the digest matches, and the request is timely.
