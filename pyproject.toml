@@ -1,6 +1,6 @@
 [project]
 name = "apsig"
-version = "0.2.0"
+version = "0.3.0"
 description = "Signature implementation used in ActivityPub."
 authors = [
     {name = "AmaseCocoa", email = "amase.cocoa@gmail.com"},
@@ -42,9 +42,10 @@ distribution = true
 
 [tool.pdm.scripts]
 test = "python test_runner.py"
+
 [dependency-groups]
 e2e = [
     "aiohttp>=3.11.12",
-    "notturno[asgi]>=0.1.2",
+    "notturno[asgi]>=0.1.4",
     "trio>=0.28.0",
 ]
