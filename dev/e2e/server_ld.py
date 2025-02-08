@@ -56,8 +56,8 @@ async def note():
 
 @app.get("/send")
 async def send(request: Request):
-    user_pin = request.query.get("pin")
-    if not user_pin != pin:
+    user_pin: bytes = request.query.get("pin")
+    if int(user_pin.decode("utf-8")) != pin:
         return {"error": "Missing Permission"}
     url = request.query.get("url")
     if url is None:
