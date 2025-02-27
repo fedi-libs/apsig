@@ -5,7 +5,7 @@
 groups = ["default", "e2e"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:f15a9a1d024ff39db63c10dc51d553ee4dba07c2ffba0ab50221907f77bca953"
+content_hash = "sha256:8b6d1b3f5945fd7e61d74a4532bf87173a32cbd5f0d539e0673e8b856eabcda9"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -951,6 +951,17 @@ files = [
     {file = "pydantic_core-2.27.2-pp310-pypy310_pp73-musllinux_1_1_x86_64.whl", hash = "sha256:0d75070718e369e452075a6017fbf187f788e17ed67a3abd47fa934d001863d9"},
     {file = "pydantic_core-2.27.2-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:7e17b560be3c98a8e3aa66ce828bdebb9e9ac6ad5466fba92eb74c4c95cb1151"},
     {file = "pydantic_core-2.27.2.tar.gz", hash = "sha256:eb026e5a4c1fee05726072337ff51d1efb6f59090b7da90d30ea58625b1ffb39"},
+]
+
+[[package]]
+name = "pyfill"
+version = "0.1.1"
+requires_python = ">=3.9"
+summary = "pyfill is a tool to detect Python versions and automatically replace deprecated features (e.g. datetime.utcnow) with alternative methods."
+groups = ["default"]
+files = [
+    {file = "pyfill-0.1.1-py3-none-any.whl", hash = "sha256:468ef3582e427581b8ef97fa15d52dd93ffa3ff1a8857d63b4944ca95d17cd59"},
+    {file = "pyfill-0.1.1.tar.gz", hash = "sha256:71d919c51ad152fe005e91aee72493db5f4ba313087cd648028676bceb206479"},
 ]
 
 [[package]]
