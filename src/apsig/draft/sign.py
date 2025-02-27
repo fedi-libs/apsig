@@ -2,16 +2,18 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 
+from pyfill import datetime
 import base64
 from urllib.parse import urlparse
 
 class draftSigner:
     def _generate_digest(body: bytes | str):
         digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-        digest.update(body.encode("utf-8"))
+        digest.update(body.encode("utf-8") if isinstance(body, str) else body)
         hash_bytes = digest.finalize()
         return "SHA-256=" + base64.b64encode(hash_bytes).decode("utf-8")
 
+    @staticmethod
     def sign(private_key: rsa.RSAPrivateKey, method: str, url: str, headers: dict, key_id: str, body: bytes="") -> dict:
         """Signs an HTTP request with a digital signature.
 
@@ -33,7 +35,10 @@ class draftSigner:
         request_target = f"(request-target): {method.lower()} {parsed_url.path}"
 
         digest = draftSigner._generate_digest(body)
-        headers["digest"] = digest
+        if not headers.get("Host"):
+            headers["Host"] = parsed_url.netloc
+        headers["Digest"] = digest
+        headers["Date"] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
 
         signature_headers = [request_target]
         for header in headers:
@@ -43,8 +48,13 @@ class draftSigner:
 
         signature = private_key.sign(signature_string, padding.PKCS1v15(), hashes.SHA256())
         signature_b64 = base64.b64encode(signature).decode("utf-8")
+        header_keys = []
+        for key in headers.keys():
+            #if key.lower() != "content-type":
+            header_keys.append(key) # .lower()
 
-        signature_header = f'keyId="{key_id}",algorithm="rsa-sha256",headers="(request-target) {" ".join(headers.keys())}",signature="{signature_b64}"'
-        headers["signature"] = signature_header
+
+        signature_header = f'keyId="{key_id}",algorithm="rsa-sha256",headers="(request-target) {" ".join(header_keys)}",signature="{signature_b64}"'
+        headers["Signature"] = signature_header
         headers["Authorization"] = f"Signature {signature_header}" # Misskeyなどでは必要
         return headers
