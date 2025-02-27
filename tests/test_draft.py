@@ -33,7 +33,7 @@ class TestSignatureFunctions(unittest.TestCase):
 
         signed_headers = draftSigner.sign(self.private_key, method, url, headers, "https://example.com/users/johndoe#main-key", body)
 
-        is_valid, message = draftVerifier.verify(self.public_pem, method, url, signed_headers, body.encode("utf-8"))
+        is_valid, message = draftVerifier.verify(public_pem=self.public_pem, method=method, url=url, headers=signed_headers, body=body.encode("utf-8"))
 
         self.assertTrue(is_valid)
         self.assertEqual(message, "Signature is valid")
@@ -44,7 +44,7 @@ class TestSignatureFunctions(unittest.TestCase):
         headers = {
             "Content-Type": "application/json",
             "Date": "Wed, 21 Oct 2015 07:28:00 GMT",
-            "signature": 'keyId="your-key-id",algorithm="rsa-sha256",headers="(request-target) Content-Type Date",signature="invalid_signature"'
+            "Signature": 'keyId="your-key-id",algorithm="rsa-sha256",headers="(request-target) Content-Type Date",signature="invalid_signature"'
         }
         body = '{"key": "value"}'
 

@@ -10,11 +10,11 @@ from urllib.parse import urlparse
 class draftVerifier:
     def _generate_digest(body: bytes | str):
         digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-        digest.update(body.encode("utf-8") if not isinstance(body, bytes) else body)
+        digest.update(body.encode("utf-8") if isinstance(body, str) else body)
         hash_bytes = digest.finalize()
         return "SHA-256=" + base64.b64encode(hash_bytes).decode("utf-8")
 
-
+    @staticmethod
     def verify(public_pem: str, method: str, url: str, headers: dict, body: bytes=b"") -> tuple[bool, str]:
         """Verifies the digital signature of an HTTP request.
 
@@ -33,7 +33,9 @@ class draftVerifier:
         Raises:
             ValueError: If the signature header is missing or if the algorithm is unsupported.
         """
-        signature_header = headers.get("signature")
+        case_insensitive_headers = {key.lower(): value for key, value in headers.items()}
+
+        signature_header = case_insensitive_headers.get("signature")
         if not signature_header:
             return False, "Signature header is missing"
 
@@ -43,7 +45,7 @@ class draftVerifier:
             signature_parts[key.strip()] = value.strip().strip('"')
 
         signature = base64.b64decode(signature_parts["signature"])
-        #keyId = signature_parts["keyId"]
+        keyId = signature_parts["keyId"]
         algorithm = signature_parts["algorithm"]
 
         if algorithm != "rsa-sha256":
@@ -74,7 +76,7 @@ class draftVerifier:
             return False, "Invalid signature"
 
         expected_digest = draftVerifier._generate_digest(body)
-        if headers.get("digest") != expected_digest:
+        if case_insensitive_headers.get("digest") != expected_digest:
             return False, "Digest mismatch"
 
         date_header = headers.get("date")
