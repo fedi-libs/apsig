@@ -35,10 +35,9 @@ class draftSigner:
         request_target = f"(request-target): {method.lower()} {parsed_url.path}"
 
         digest = draftSigner._generate_digest(body)
-        if not headers.get("Host"):
-            headers["Host"] = parsed_url.netloc
-        headers["Digest"] = digest
-        headers["Date"] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+
+        headers["digest"] = digest
+        headers["date"] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
 
         signature_headers = [request_target]
         for header in headers:
@@ -51,9 +50,10 @@ class draftSigner:
         header_keys = []
         for key in headers.keys():
             #if key.lower() != "content-type":
-            header_keys.append(key) # .lower()
+            header_keys.append(key)
 
-
+        if not headers.get("Host"):
+            headers["Host"] = parsed_url.netloc
         signature_header = f'keyId="{key_id}",algorithm="rsa-sha256",headers="(request-target) {" ".join(header_keys)}",signature="{signature_b64}"'
         headers["Signature"] = signature_header
         headers["Authorization"] = f"Signature {signature_header}" # Misskeyなどでは必要

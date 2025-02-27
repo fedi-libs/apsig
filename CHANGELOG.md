@@ -1,3 +1,6 @@
+# 0.3.3 (unreleased)
+## Bug Fixed
+- fix: Fixed problem with HTTP signatures not being accepted in some implementations (re)
 # 0.3.2
 ## Bug Fixed
 - fix: convert header keys to case-insensitive key names during validation

@@ -1,6 +1,6 @@
 [project]
 name = "apsig"
-version = "0.3.2"
+version = "0.3.3"
 description = "Signature implementation used in ActivityPub."
 authors = [
     {name = "AmaseCocoa", email = "amase.cocoa@gmail.com"},
