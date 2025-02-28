@@ -46,12 +46,13 @@ class Signer:
         self.url = url
         self.key_id = key_id
         self.body = body
+        
+        if not self.headers.get("Host"):
+            self.headers["Host"] = self.parsed_url.netloc
 
         self.__generate_digest(self.body)
 
     def __generate_sign_header(self, signature: str):
-        if not self.headers.get("Host"):
-            self.headers["Host"] = self.parsed_url.netloc
         self.headers["Signature"] = signature
         self.headers["Authorization"] = f"Signature {signature}"
 
