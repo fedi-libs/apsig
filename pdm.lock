@@ -5,7 +5,7 @@
 groups = ["default", "e2e"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:fe0c7e00850039331da18420e804de63a5d0cc11f7ee3f123673dc5a5a3c02e0"
+content_hash = "sha256:d53a2db498fe5cc6710f5e0c753c1ffb9047a2821fa02665babf8428baa6b67a"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -999,6 +999,16 @@ dependencies = [
 files = [
     {file = "PyLD-2.0.4-py3-none-any.whl", hash = "sha256:6dab9905644616df33f8755489fc9b354ed7d832d387b7d1974b4fbd3b8d2a89"},
     {file = "PyLD-2.0.4.tar.gz", hash = "sha256:311e350f0dbc964311c79c28e86f84e195a81d06fef5a6f6ac2a4f6391ceeacc"},
+]
+
+[[package]]
+name = "pytz"
+version = "2025.1"
+summary = "World timezone definitions, modern and historical"
+groups = ["default"]
+files = [
+    {file = "pytz-2025.1-py2.py3-none-any.whl", hash = "sha256:89dd22dca55b46eac6eda23b2d72721bf1bdfef212645d81513ef5d03038de57"},
+    {file = "pytz-2025.1.tar.gz", hash = "sha256:c2db42be2a2518b28e65f9207c4d05e6ff547d1efa4086469ef855e4ab70178e"},
 ]
 
 [[package]]

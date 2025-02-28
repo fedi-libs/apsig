@@ -12,6 +12,7 @@ dependencies = [
     "pyld[aiohttp,requests]>=2.0.4",
     "pyfill>=0.1.1",
     "typing-extensions>=4.12.2",
+    "pytz>=2025.1",
 ]
 classifiers = [
         'Development Status :: 4 - Beta',
