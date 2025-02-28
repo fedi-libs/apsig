@@ -961,13 +961,13 @@ files = [
 
 [[package]]
 name = "pyfill"
-version = "0.1.2"
+version = "0.1.3"
 requires_python = ">=3.9"
 summary = "pyfill is a tool to detect Python versions and automatically replace deprecated features (e.g. datetime.utcnow) with alternative methods."
 groups = ["default"]
 files = [
-    {file = "pyfill-0.1.2-py3-none-any.whl", hash = "sha256:0566902fe6075d3554767d4aa265fbeb7bfb01876e5d07103ba00988f63333cc"},
-    {file = "pyfill-0.1.2.tar.gz", hash = "sha256:e8be1a3f17d1b6afd635c65128ae1432307b2470de3bf328c56d164f111dc347"},
+    {file = "pyfill-0.1.3-py3-none-any.whl", hash = "sha256:f6057ac9ab418855f278a21b02082a80f969b2decd15229a476c9f74a2f353d7"},
+    {file = "pyfill-0.1.3.tar.gz", hash = "sha256:f8416ca329c5c61da9323527b3f8f263f9ac71139d00ac3f5d2fa1398afca274"},
 ]
 
 [[package]]
