@@ -47,6 +47,8 @@ test = "python -m unittest discover -s tests"
 
 [tool.pdm.version]
 source = "scm"
+write_to = "apsig/_version.py"
+write_template = "__version__ = '{}'"
 
 [dependency-groups]
 e2e = [
