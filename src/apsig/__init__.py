@@ -1,5 +1,5 @@
 from .actor.keytools import KeyUtil
-from .draft.sign import DraftSigner, draftSigner
+from .draft.sign import draftSigner
 from .draft.verify import draftVerifier
 from .ld_signature import LDSignature
 from .proof.sign import ProofSigner
@@ -10,7 +10,6 @@ __all__ = [
     "OIPVerifier",
     "ProofSigner",
     "ProofVerifier",
-    "DraftSigner",
     "draftSigner",
     "draftVerifier",
     "LDSignature",
