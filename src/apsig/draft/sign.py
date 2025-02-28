@@ -2,20 +2,21 @@ from typing import Any
 from typing_extensions import deprecated
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.backends import default_backend
 
 import base64
 from urllib.parse import urlparse, ParseResult
 import email.utils
 
+from .tools import calculate_digest, build_string
+
 class draftSigner:
     @staticmethod
-    @deprecated("apsig.draft.sign.draftSigner is deprecated; use apsig.draft.sign.DraftSigner instead. This will be removed in apsig 1.0.")
+    @deprecated("apsig.draft.sign.draftSigner is deprecated; use apsig.draft.sign.Signer instead. This will be removed in apsig 1.0.")
     def sign(private_key: rsa.RSAPrivateKey, method: str, url: str, headers: dict, key_id: str, body: bytes=b"") -> dict:
-        signer = DraftSigner(headers=headers, private_key=private_key, method=method, url=url, key_id=key_id, body=body)
+        signer = Signer(headers=headers, private_key=private_key, method=method, url=url, key_id=key_id, body=body)
         return signer.sign()
 
-class DraftSigner:
+class Signer:
     def __init__(self, headers: dict[Any, Any], private_key: rsa.RSAPrivateKey, method: str, url: str, key_id: str, body: bytes=b"") -> None:
         """Signs an HTTP request with a digital signature.
 
@@ -59,10 +60,7 @@ class DraftSigner:
 
     def __generate_digest(self, body: bytes | str):
         if not self.headers.get("digest") and not self.headers.get("Digest"):
-            digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-            digest.update(body.encode("utf-8") if isinstance(body, str) else body)
-            hash_bytes = digest.finalize()
-            self.headers["digest"] = "SHA-256=" + base64.b64encode(hash_bytes).decode("utf-8")
+            self.headers["digest"] = calculate_digest(body)
         else:
             return self.headers.get("digest")
     
@@ -77,12 +75,8 @@ class DraftSigner:
             f'signature="{signature}"'
         ])
 
-    def build_string(self, strings: dict) -> str:
-        return "\n".join(f"{key.lower()}: {value}" for key, value in strings.items())
-
     def sign(self) -> dict:
-        signature_string = self.build_string(self.headers).encode("utf-8")
-
+        signature_string = build_string(self.headers).encode("utf-8")
         signature = self.__sign_document(signature_string)
         signed = self.build_signature(self.key_id, signature)
         self.__generate_sign_header(signed)
