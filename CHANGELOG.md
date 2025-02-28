@@ -1,4 +1,5 @@
-# 0.3.3
+# 0.4.0
+This is a major release containing disruptive changes! 💣
 ## Bug Fixed
 - fix(draft): include Host header in signatures
 ## Deprecation

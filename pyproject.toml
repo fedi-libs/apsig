@@ -1,6 +1,6 @@
 [project]
 name = "apsig"
-version = "0.3.3"
+dynamic = ["version"]
 description = "Signature implementation used in ActivityPub."
 authors = [
     {name = "AmaseCocoa", email = "amase.cocoa@gmail.com"},
@@ -44,6 +44,9 @@ distribution = true
 
 [tool.pdm.scripts]
 test = "python -m unittest discover -s tests"
+
+[tool.pdm.version]
+source = "scm"
 
 [dependency-groups]
 e2e = [
