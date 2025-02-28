@@ -21,7 +21,7 @@ jobs:
 
       - name: Merge main into stable
         run: |
-          git checkout stable
+          git checkout origin/stable
           git merge -m "build: merge latest main branch" main
           git push origin stable
         env:
@@ -36,8 +36,12 @@ jobs:
     permissions:
       id-token: write
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup PDM
         uses: pdm-project/setup-pdm@v4
+
       - name: Build Package
         run: |
           pdm install --production
