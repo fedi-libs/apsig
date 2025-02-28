@@ -1,4 +1,3 @@
-from typing import Self
 
 from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
 from cryptography.hazmat.primitives import serialization
@@ -9,7 +8,7 @@ from multiformats import multibase, multicodec
 
 class KeyUtil:
     def __init__(
-        self: Self,
+        self,
         public_key: ed25519.Ed25519PublicKey | rsa.RSAPublicKey = None,
         private_key: ed25519.Ed25519PrivateKey | rsa.RSAPrivateKey = None,
     ):
@@ -28,7 +27,7 @@ class KeyUtil:
             self.private_key = private_key
             self.public_key = private_key.public_key()
 
-    def encode_multibase(self: Self, private: bool = False) -> str:
+    def encode_multibase(self, private: bool = False) -> str:
         """multibase encode the key.
 
         Args:
@@ -73,7 +72,7 @@ class KeyUtil:
         return multibase.encode(prefixed, "base58btc")
 
     def decode_multibase(
-        self: Self, data: str
+        self, data: str
     ) -> (
         ed25519.Ed25519PublicKey
         | ed25519.Ed25519PrivateKey

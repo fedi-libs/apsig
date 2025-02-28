@@ -7,31 +7,61 @@ on:
   pull_request:
 
 jobs:
-  run-lint:
+  run-ruff:
     runs-on: ubuntu-latest
-    name: Run Lint
+    permissions:
+      contents: write
+      pull-requests: write
+    name: Run Ruff
     steps:
       - name: Check out source repository
         uses: actions/checkout@v4
-      
-      - name: Set up Python environment
-        uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          ref: ${{ github.head_ref }}
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install ruff
+      - name: Format code
+        uses: astral-sh/ruff-action@v3.0.0
+        with:
+          args: "format"
+          src: "scripts/"
+        continue-on-error: true
 
-      - name: Lint with Ruff
-        id: lint
+      - name: Commit Formatted Code
         run: |
-          ruff check . --output-format=github > lint_report.txt || true
-
-      - name: Post Lint Results
-        run: |
-          comment_body=$(<lint_report.txt)
-          echo "# Lint results\n\`\`\`\n$comment_body\n\`\`\`" | gh pr comment ${{ github.event.pull_request.number }} --body-file -
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "refactor: auto formatted by ruff" || exit 0
+          git push origin HEAD:${{ github.head_ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: astral-sh/ruff-action@v3
+        with:
+          src: "./src/apsig"
+          args: "check --output-file ruff_check_output.txt --output-format full"
+        continue-on-error: true
+      
+      - name: Output
+        run: |
+          echo "#### Lint Result" > ruff_output.txt
+
+          # Add format output
+          echo "<details><summary>Not fixable checks</summary>" >> ruff_output.txt
+          echo "" >> ruff_output.txt
+          echo '```' >> ruff_output.txt
+          cat ruff_check_output.txt >> ruff_output.txt
+          echo '```' >> ruff_output.txt
+          echo "" >> ruff_output.txt
+          echo "</details>" >> ruff_output.txt
+
+          file_size=$(wc -m <ruff_output.txt)         
+          if [ "$file_size" -gt 65000 ]; then
+            head -c 65000 ruff_output.txt > temp_ruff_output.txt
+            mv temp_ruff_output.txt ruff_output.txt
+          fi
+
+          gh issue comment ${{ github.event.number }} --body-file ruff_output.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}

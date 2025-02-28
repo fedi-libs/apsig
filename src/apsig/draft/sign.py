@@ -1,20 +1,23 @@
+from typing import Any
+from typing_extensions import deprecated
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.backends import default_backend
 
-from pyfill import datetime
 import base64
-from urllib.parse import urlparse
+from urllib.parse import urlparse, ParseResult
+import email.utils
+
+from .tools import calculate_digest, build_string
 
 class draftSigner:
-    def _generate_digest(body: bytes | str):
-        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-        digest.update(body.encode("utf-8") if isinstance(body, str) else body)
-        hash_bytes = digest.finalize()
-        return "SHA-256=" + base64.b64encode(hash_bytes).decode("utf-8")
-
     @staticmethod
-    def sign(private_key: rsa.RSAPrivateKey, method: str, url: str, headers: dict, key_id: str, body: bytes="") -> dict:
+    @deprecated("apsig.draft.sign.draftSigner is deprecated; use apsig.draft.sign.Signer instead. This will be removed in apsig 1.0.")
+    def sign(private_key: rsa.RSAPrivateKey, method: str, url: str, headers: dict, key_id: str, body: bytes=b"") -> dict:
+        signer = Signer(headers=headers, private_key=private_key, method=method, url=url, key_id=key_id, body=body)
+        return signer.sign()
+
+class Signer:
+    def __init__(self, headers: dict[Any, Any], private_key: rsa.RSAPrivateKey, method: str, url: str, key_id: str, body: bytes=b"") -> None:
         """Signs an HTTP request with a digital signature.
 
         Args:
@@ -31,30 +34,54 @@ class draftSigner:
         Raises:
             ValueError: If the signing process fails due to invalid parameters.
         """
-        parsed_url = urlparse(url)
-        request_target = f"(request-target): {method.lower()} {parsed_url.path}"
+        if not headers.get("date") and not headers.get("Date"):
+            headers["date"] = email.utils.formatdate(usegmt=True)
+        self.parsed_url: ParseResult = urlparse(url)
+        self.headers = {
+            **headers,
+            "(request-target)": f"{method.lower()} {self.parsed_url.path}"
+        }
+        self.private_key = private_key
+        self.method = method
+        self.url = url
+        self.key_id = key_id
+        self.body = body
 
-        digest = draftSigner._generate_digest(body)
+        self.__generate_digest(self.body)
 
-        headers["digest"] = digest
-        headers["date"] = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+    def __generate_sign_header(self, signature: str):
+        if not self.headers.get("Host"):
+            self.headers["Host"] = self.parsed_url.netloc
+        self.headers["Signature"] = signature
+        self.headers["Authorization"] = f"Signature {signature}"
 
-        signature_headers = [request_target]
-        for header in headers:
-            signature_headers.append(f"{header}: {headers[header]}")
+    def __sign_document(self, document: bytes):
+        return base64.standard_b64encode(self.private_key.sign(document, padding.PKCS1v15(), hashes.SHA256())).decode("utf-8")
 
-        signature_string = "\n".join(signature_headers).encode("utf-8")
+    def __generate_digest(self, body: bytes | str):
+        if not self.headers.get("digest") and not self.headers.get("Digest"):
+            self.headers["digest"] = calculate_digest(body)
+        else:
+            return self.headers.get("digest")
+    
+    def build_signature(self, key_id: str, signature: str, algorithm: str = "rsa-sha256"):
+        if algorithm != "rsa-sha256":
+            raise NotImplementedError(f"Unsuppored algorithm: {algorithm}")
+        
+        return ",".join([
+            f'keyId="{key_id}"',
+            f'algorithm="{algorithm}"',
+            f'headers="{" ".join(key.lower() for key in self.headers.keys())}"',
+            f'signature="{signature}"'
+        ])
 
-        signature = private_key.sign(signature_string, padding.PKCS1v15(), hashes.SHA256())
-        signature_b64 = base64.b64encode(signature).decode("utf-8")
-        header_keys = []
-        for key in headers.keys():
-            #if key.lower() != "content-type":
-            header_keys.append(key)
+    def sign(self) -> dict:
+        signature_string = build_string(self.headers).encode("utf-8")
+        signature = self.__sign_document(signature_string)
+        signed = self.build_signature(self.key_id, signature)
+        self.__generate_sign_header(signed)
 
-        if not headers.get("Host"):
-            headers["Host"] = parsed_url.netloc
-        signature_header = f'keyId="{key_id}",algorithm="rsa-sha256",headers="(request-target) {" ".join(header_keys)}",signature="{signature_b64}"'
-        headers["Signature"] = signature_header
-        headers["Authorization"] = f"Signature {signature_header}" # Misskeyなどでは必要
+        headers = self.headers.copy()
+        headers.pop("(request-target)")
+
         return headers

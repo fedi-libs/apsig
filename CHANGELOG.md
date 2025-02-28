@@ -1,6 +1,9 @@
-# 0.3.3 (unreleased)
+# 0.3.3
 ## Bug Fixed
-- fix: Fixed problem with HTTP signatures not being accepted in some implementations (re)
+
+## Deprecation
+- `apsig.draft.sign.draftSigner` has been deprecated and will be removed in 1.0, please use `apsig.draft.sign.DraftSigner` instead.
+- `apsig.draft.verify.draftVerifier` has been deprecated and will be removed in 1.0, please use `apsig.draft.verify.Verifier` instead.
 # 0.3.2
 ## Bug Fixed
 - fix: convert header keys to case-insensitive key names during validation

@@ -5,7 +5,7 @@
 groups = ["default", "e2e"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:8b6d1b3f5945fd7e61d74a4532bf87173a32cbd5f0d539e0673e8b856eabcda9"
+content_hash = "sha256:d53a2db498fe5cc6710f5e0c753c1ffb9047a2821fa02665babf8428baa6b67a"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -216,6 +216,7 @@ version = "1.17.1"
 requires_python = ">=3.8"
 summary = "Foreign Function Interface for Python calling C code."
 groups = ["default", "e2e"]
+marker = "os_name == \"nt\" and implementation_name != \"pypy\" or platform_python_implementation != \"PyPy\""
 dependencies = [
     "pycparser",
 ]
@@ -859,6 +860,7 @@ version = "2.22"
 requires_python = ">=3.8"
 summary = "C parser in Python"
 groups = ["default", "e2e"]
+marker = "os_name == \"nt\" and implementation_name != \"pypy\" or platform_python_implementation != \"PyPy\""
 files = [
     {file = "pycparser-2.22-py3-none-any.whl", hash = "sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc"},
     {file = "pycparser-2.22.tar.gz", hash = "sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6"},
@@ -959,13 +961,13 @@ files = [
 
 [[package]]
 name = "pyfill"
-version = "0.1.2"
+version = "0.1.3"
 requires_python = ">=3.9"
 summary = "pyfill is a tool to detect Python versions and automatically replace deprecated features (e.g. datetime.utcnow) with alternative methods."
 groups = ["default"]
 files = [
-    {file = "pyfill-0.1.2-py3-none-any.whl", hash = "sha256:0566902fe6075d3554767d4aa265fbeb7bfb01876e5d07103ba00988f63333cc"},
-    {file = "pyfill-0.1.2.tar.gz", hash = "sha256:e8be1a3f17d1b6afd635c65128ae1432307b2470de3bf328c56d164f111dc347"},
+    {file = "pyfill-0.1.3-py3-none-any.whl", hash = "sha256:f6057ac9ab418855f278a21b02082a80f969b2decd15229a476c9f74a2f353d7"},
+    {file = "pyfill-0.1.3.tar.gz", hash = "sha256:f8416ca329c5c61da9323527b3f8f263f9ac71139d00ac3f5d2fa1398afca274"},
 ]
 
 [[package]]
@@ -1000,25 +1002,13 @@ files = [
 ]
 
 [[package]]
-name = "pynacl"
-version = "1.5.0"
-requires_python = ">=3.6"
-summary = "Python binding to the Networking and Cryptography (NaCl) library"
+name = "pytz"
+version = "2025.1"
+summary = "World timezone definitions, modern and historical"
 groups = ["default"]
-dependencies = [
-    "cffi>=1.4.1",
-]
 files = [
-    {file = "PyNaCl-1.5.0-cp36-abi3-macosx_10_10_universal2.whl", hash = "sha256:401002a4aaa07c9414132aaed7f6836ff98f59277a234704ff66878c2ee4a0d1"},
-    {file = "PyNaCl-1.5.0-cp36-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_24_aarch64.whl", hash = "sha256:52cb72a79269189d4e0dc537556f4740f7f0a9ec41c1322598799b0bdad4ef92"},
-    {file = "PyNaCl-1.5.0-cp36-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a36d4a9dda1f19ce6e03c9a784a2921a4b726b02e1c736600ca9c22029474394"},
-    {file = "PyNaCl-1.5.0-cp36-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_24_x86_64.whl", hash = "sha256:0c84947a22519e013607c9be43706dd42513f9e6ae5d39d3613ca1e142fba44d"},
-    {file = "PyNaCl-1.5.0-cp36-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:06b8f6fa7f5de8d5d2f7573fe8c863c051225a27b61e6860fd047b1775807858"},
-    {file = "PyNaCl-1.5.0-cp36-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:a422368fc821589c228f4c49438a368831cb5bbc0eab5ebe1d7fac9dded6567b"},
-    {file = "PyNaCl-1.5.0-cp36-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:61f642bf2378713e2c2e1de73444a3778e5f0a38be6fee0fe532fe30060282ff"},
-    {file = "PyNaCl-1.5.0-cp36-abi3-win32.whl", hash = "sha256:e46dae94e34b085175f8abb3b0aaa7da40767865ac82c928eeb9e57e1ea8a543"},
-    {file = "PyNaCl-1.5.0-cp36-abi3-win_amd64.whl", hash = "sha256:20f42270d27e1b6a29f54032090b972d97f0a1b0948cc52392041ef7831fee93"},
-    {file = "PyNaCl-1.5.0.tar.gz", hash = "sha256:8ac7448f09ab85811607bdd21ec2464495ac8b7c66d146bf545b0f08fb9220ba"},
+    {file = "pytz-2025.1-py2.py3-none-any.whl", hash = "sha256:89dd22dca55b46eac6eda23b2d72721bf1bdfef212645d81513ef5d03038de57"},
+    {file = "pytz-2025.1.tar.gz", hash = "sha256:c2db42be2a2518b28e65f9207c4d05e6ff547d1efa4086469ef855e4ab70178e"},
 ]
 
 [[package]]

@@ -1,21 +1,25 @@
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.backends import default_backend
-from cryptography.exceptions import InvalidSignature
-
 import base64
-import datetime
 from urllib.parse import urlparse
 
-class draftVerifier:
-    def _generate_digest(body: bytes | str):
-        digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
-        digest.update(body.encode("utf-8") if isinstance(body, str) else body)
-        hash_bytes = digest.finalize()
-        return "SHA-256=" + base64.b64encode(hash_bytes).decode("utf-8")
+import pytz
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from pyfill import datetime
+from typing_extensions import deprecated
 
+from .tools import build_string, calculate_digest
+
+
+class draftVerifier:
     @staticmethod
-    def verify(public_pem: str, method: str, url: str, headers: dict, body: bytes=b"") -> tuple[bool, str]:
+    @deprecated(
+        "apsig.draft.verify.draftVerifier is deprecated; use apsig.draft.verify.Verifier instead. This will be removed in apsig 1.0."
+    )
+    def verify(
+        public_pem: str, method: str, url: str, headers: dict, body: bytes = b""
+    ) -> tuple[bool, str]:
         """Verifies the digital signature of an HTTP request.
 
         Args:
@@ -33,9 +37,46 @@ class draftVerifier:
         Raises:
             ValueError: If the signature header is missing or if the algorithm is unsupported.
         """
-        case_insensitive_headers = {key.lower(): value for key, value in headers.items()}
+        return Verifier(
+            public_pem=public_pem, method=method, url=url, headers=headers, body=body
+        ).verify()
 
-        signature_header = case_insensitive_headers.get("signature")
+
+class Verifier:
+    def __init__(
+        self, public_pem: str, method: str, url: str, headers: dict, body: bytes = b""
+    ) -> None:
+        self.public_pem = public_pem
+        self.method = method
+        self.url = url
+        self.headers_raw = headers
+        self.headers = {key.lower(): value for key, value in headers.items()}
+        self.body = body
+
+    def __decode_sign(self, signature):
+        return base64.standard_b64decode(signature)
+
+    def verify(self) -> tuple[bool, str]:
+        """Verifies the digital signature of an HTTP request.
+
+        Args:
+            public_pem (str): The public key in PEM format used to verify the signature.
+            method (str): The HTTP method (e.g., "GET", "POST").
+            url (str): The URL of the request.
+            headers (dict): A dictionary of HTTP headers, including the signature and other relevant information.
+            body (bytes, optional): The request body. Defaults to an empty byte string.
+
+        Returns:
+            tuple: A tuple containing:
+                - bool: True if the signature is valid, False otherwise.
+                - str: A message indicating the result of the verification.
+
+        Raises:
+            ValueError: If the signature header is missing or if the algorithm is unsupported.
+        """
+        headers = self.headers.copy()
+
+        signature_header = headers.get("signature")
         if not signature_header:
             return False, "Signature header is missing"
 
@@ -44,8 +85,8 @@ class draftVerifier:
             key, value = item.split("=", 1)
             signature_parts[key.strip()] = value.strip().strip('"')
 
-        signature = base64.b64decode(signature_parts["signature"])
-        keyId = signature_parts["keyId"]
+        signature = self.__decode_sign(signature_parts["signature"])
+        #keyId = signature_parts["keyId"]
         algorithm = signature_parts["algorithm"]
 
         if algorithm != "rsa-sha256":
@@ -53,19 +94,18 @@ class draftVerifier:
 
         signed_headers = signature_parts["headers"].split()
 
-        parsed_url = urlparse(url)
-        request_target = f"(request-target): {method.lower()} {parsed_url.path}"
+        parsed_url = urlparse(self.url)
 
-        signature_headers = [request_target]
-        for header in signed_headers:
-            if header in headers:
-                signature_headers.append(f"{header}: {headers[header]}")
-
-        signature_string = "\n".join(signature_headers).encode("utf-8")
+        signature_headers = headers.copy()
+        signature_headers["(request-target)"] = (
+            f"{self.method.lower()} {parsed_url.path}"
+        )
+        signature_string = build_string(
+            signature_headers, headers=signed_headers
+        ).encode("utf-8")
 
         public_key = serialization.load_pem_public_key(
-            public_pem.encode('utf-8'),
-            backend=default_backend()
+            self.public_pem.encode("utf-8"), backend=default_backend()
         )
 
         try:
@@ -75,16 +115,19 @@ class draftVerifier:
         except InvalidSignature:
             return False, "Invalid signature"
 
-        expected_digest = draftVerifier._generate_digest(body)
-        if case_insensitive_headers.get("digest") != expected_digest:
+        expected_digest = calculate_digest(self.body)
+        if headers.get("digest") != expected_digest:
             return False, "Digest mismatch"
 
         date_header = headers.get("date")
         if date_header:
-            request_time = datetime.datetime.strptime(
+            date = datetime.datetime.datetime.strptime(
                 date_header, "%a, %d %b %Y %H:%M:%S GMT"
             )
-            current_time = datetime.datetime.utcnow()
+            gmt_tz = pytz.timezone('GMT')
+            gmt_time = gmt_tz.localize(date)
+            request_time = gmt_time.astimezone(pytz.utc)
+            current_time = datetime.utcnow()
             if abs((current_time - request_time).total_seconds()) > 3600:
                 return False, "Date header is too far from current time"
 
