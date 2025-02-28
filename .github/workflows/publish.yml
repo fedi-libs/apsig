@@ -36,10 +36,11 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Build Packages
+      - name: Setup PDM
         uses: pdm-project/setup-pdm@v4
+      - name: Build Package
         run: |
-          pdm install
+          pdm install --production
           pdm build
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
