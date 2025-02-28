@@ -1,0 +1,45 @@
+name: Publish Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Merge main into stable
+        run: |
+          git checkout stable
+          git merge -m "build: merge latest main branch" main
+          git push origin stable
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pypi-publish:
+    name: Upload release to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/apsig
+    permissions:
+      id-token: write
+    steps:
+      - name: Build Packages
+        uses: pdm-project/setup-pdm@v4
+        run: |
+          pdm install
+          pdm build
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
