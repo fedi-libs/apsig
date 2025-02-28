@@ -39,12 +39,12 @@ jobs:
       - uses: astral-sh/ruff-action@v3
         with:
           src: "./src/apsig"
-          args: "check --output-file ruff_output.txt --output-format full"
+          args: "check --output-file ruff_check_output.txt --output-format full"
         continue-on-error: true
       
       - name: Output
         run: |
-          echo "#### Ruff Linter" > ruff_output.txt
+          echo "#### Lint Result" > ruff_output.txt
 
           # Add format output
           echo "<details><summary>Not fixable checks</summary>" >> ruff_output.txt
