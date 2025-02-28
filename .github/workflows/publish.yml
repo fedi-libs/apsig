@@ -24,7 +24,7 @@ jobs:
       - name: Merge main into stable
         run: |
           git checkout origin/stable
-          git merge -m "build: merge latest main branch" main
+          git merge -m "build: merge latest main branch" origin/main
           git push origin stable
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
