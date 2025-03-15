@@ -1,3 +1,6 @@
+# 0.5.0
+## New Features
+- feat: To make only the analysis available 
 # 0.4.0
 This is a major release containing disruptive changes! 💣
 ## Bug Fixed
