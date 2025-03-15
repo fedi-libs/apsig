@@ -37,9 +37,10 @@ class TestProofSignerVerifier(unittest.TestCase):
         })
 
         verifier = ProofVerifier(self.public_key)
-        is_valid = verifier.verify(signed_object)
+        result = verifier.verify(signed_object)
 
-        self.assertTrue(is_valid)
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "https://example.com/keys/1")
 
     def test_verify_invalid_signature(self):
         json_object = {
@@ -68,7 +69,7 @@ class TestProofSignerVerifier(unittest.TestCase):
         verifier = ProofVerifier(self.public_key)
         result = verifier.verify(signed_object)
 
-        self.assertFalse(result["verified"])
+        self.assertIsNone(result)
 
     def test_missing_proof(self):
         json_object = {
@@ -84,10 +85,8 @@ class TestProofSignerVerifier(unittest.TestCase):
 
         verifier = ProofVerifier(self.public_key)
 
-        with self.assertRaises(ValueError) as context:
-            verifier.verify(json_object)
-
-        self.assertEqual(str(context.exception), "Proof not found in the object")
+        with self.assertRaises(ValueError, msg="Proof not found in the object"):
+            verifier.verify(json_object, raise_on_fail=True)
 
 
 if __name__ == "__main__":

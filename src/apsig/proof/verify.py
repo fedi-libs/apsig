@@ -1,9 +1,11 @@
+from typing import Union
 import hashlib
 
 import jcs
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from multiformats import multibase, multicodec
 
+from ..exceptions import VerificationFailed, UnknownSignature
 
 class ProofVerifier:
     """
@@ -66,7 +68,7 @@ class ProofVerifier:
         ).digest()
         return proof_config_hash + transformed_document_hash
 
-    def verify_proof(self, secured_document: dict):
+    def verify_proof(self, secured_document: dict, raise_on_fail: bool = False) -> Union[str, bool]:
         """
         Verifies the proof contained in the secured document.
 
@@ -76,6 +78,7 @@ class ProofVerifier:
 
         Args:
             secured_document (dict): The document containing the proof to be verified.
+            raise_on_fail (bool, optional): Return error on failure. defaults to False.
 
         Returns:
             dict: A dictionary containing:
@@ -86,36 +89,49 @@ class ProofVerifier:
             ValueError: If the proof is not found in the document.
         """
         if not secured_document.get("proof"):
-            raise ValueError("Proof not found in the object")
+            if raise_on_fail:
+                raise ValueError("Proof not found in the object")
+            return None
         unsecured_document = secured_document.copy()
         proof_value = unsecured_document["proof"].pop("proofValue")
         proof_bytes = multibase.decode(proof_value)
 
         proof_options = unsecured_document["proof"]
+        verification_method = proof_options.get("verificationMethod")
+        if not verification_method:
+            if raise_on_fail:
+                raise ValueError("verificationMethod not found in proof")
+            return None
 
         if "@context" in proof_options:
             if isinstance(secured_document["@context"], str):
                 if not secured_document["@context"].startswith(
                     tuple(proof_options["@context"])
                 ):
-                    return {"verified": False, "verifiedDocument": None}
+                    if raise_on_fail:
+                        raise UnknownSignature
+                    return None
             elif isinstance(secured_document["@context"], list):
                 if not any(item.startswith(tuple(proof_options["@context"])) for item in secured_document["@context"] if isinstance(item, str)):
-                    return {"verified": False, "verifiedDocument": None}
+                    if raise_on_fail:
+                        raise UnknownSignature
+                    return None
 
-        unsecured_document["@context"] = proof_options["@context"]
 
+        unsecured_document.pop("proof")
         transformed_data = self.transform(unsecured_document, proof_options)
         proof_config = self.canonicalize(proof_options)
         hash_data = self.hashing(transformed_data, proof_config)
 
         try:
             self.verify_signature(proof_bytes, hash_data)
-            return {"verified": True, "verifiedDocument": unsecured_document}
-        except Exception:
-            return {"verified": False, "verifiedDocument": None}
+            return verification_method
+        except Exception as e:
+            if raise_on_fail:
+                raise VerificationFailed(str(e))
+            return None
 
-    def verify(self, secured_document: dict) -> dict:
+    def verify(self, secured_document: dict, raise_on_fail: bool = False) -> Union[str, bool]:
         """
         An alias for the verify_proof method.
 
@@ -128,4 +144,4 @@ class ProofVerifier:
         Returns:
             dict: The result of the proof verification.
         """
-        return self.verify_proof(secured_document)
+        return self.verify_proof(secured_document, raise_on_fail)

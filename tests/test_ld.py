@@ -26,29 +26,25 @@ class TestJsonLdSigner(unittest.TestCase):
         self.signed_data = self.ld.sign(self.data, "https://example.com/users/johndoe#main-key", private_key=self.private_key)
 
     def test_sign_and_verify(self):
-        self.ld.verify(self.signed_data, self.public_key)
+        result = self.ld.verify(self.signed_data, self.public_key, raise_on_fail=True)
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "https://example.com/users/johndoe#main-key")
 
     def test_verify_invalid_signature_value(self):
         signed_data = self.ld.sign(self.data, "https://example.com/users/johndoe#main-key", private_key=self.private_key)
         signed_data["signature"]["signatureValue"] = "invalid_signature"
-        with self.assertRaises(VerificationFailed) as context:
-            self.ld.verify(signed_data, self.public_key)
-        self.assertEqual(str(context.exception), "LDSignature mismatch")
+        with self.assertRaises(VerificationFailed, msg="LDSignature mismatch"):
+            self.ld.verify(signed_data, self.public_key, raise_on_fail=True)
         
     def test_verify_missing_signature(self):
-        try:
-            self.ld.verify(self.data, self.public_key)
-            is_fail = False
-        except MissingSignature:
-            is_fail = True
-        self.assertTrue(is_fail)
+        with self.assertRaises(MissingSignature, msg="Invalid signature section"):
+            self.ld.verify(self.data, self.public_key, raise_on_fail=True)
         
     def test_verify_invalid_signature(self):
         signed_data = self.ld.sign(self.data, "https://example.com/users/johndoe#main-key", private_key=self.private_key)
         signed_data["signature"]["type"] = "RsaSignatureHoge"
-        with self.assertRaises(UnknownSignature) as context:
-            self.ld.verify(signed_data, self.public_key)
-        self.assertEqual(str(context.exception), "Unknown signature type")
+        with self.assertRaises(UnknownSignature, msg="Unknown signature type"):
+            self.ld.verify(signed_data, self.public_key, raise_on_fail=True)
 
 if __name__ == '__main__':
     unittest.main()

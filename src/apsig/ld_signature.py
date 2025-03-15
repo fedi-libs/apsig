@@ -1,5 +1,6 @@
 # This code was ported from Takahe.
 
+from typing import Union
 import datetime
 import base64
 from cryptography.hazmat.primitives import hashes
@@ -82,7 +83,7 @@ class LDSignature:
             },
         }
 
-    def verify(self, doc: dict, public_key: rsa.RSAPublicKey | str):
+    def verify(self, doc: dict, public_key: rsa.RSAPublicKey | str, raise_on_fail: bool = False) -> Union[str, None]:
         """Verifies the signature of the provided document against the given public key.
 
         Args:
@@ -100,7 +101,9 @@ class LDSignature:
         if isinstance(public_key, str):
             codec, data = multicodec.unwrap(multibase.decode(public_key))
             if codec.name != "rsa-pub":
-                raise ValueError("public_key must be RSA PublicKey.")
+                if raise_on_fail:
+                    raise ValueError("public_key must be RSA PublicKey.")
+                return None
             public_key = serialization.load_pem_public_key(data, backend=default_backend())
         try:
             document = doc.copy()
@@ -111,9 +114,13 @@ class LDSignature:
                 "created": signature["created"],
             }
         except KeyError:
-            raise MissingSignature("Invalid signature section")
+            if raise_on_fail:
+                raise MissingSignature("Invalid signature section")
+            return None
         if signature["type"].lower() != "rsasignature2017":
-            raise UnknownSignature("Unknown signature type")
+            if raise_on_fail:
+                raise UnknownSignature("Unknown signature type")
+            return None
         final_hash = self.__normalized_hash(options) + self.__normalized_hash(document)
         try:
             public_key.verify(
@@ -122,5 +129,8 @@ class LDSignature:
                 padding.PKCS1v15(),
                 hashes.SHA256(),
             )
+            return signature["creator"]
         except InvalidSignature:
-            raise VerificationFailed("LDSignature mismatch")
+            if raise_on_fail:
+                raise VerificationFailed("LDSignature mismatch")
+            return None

@@ -1,6 +1,10 @@
 # 0.5.0
+Following on from the last one, this is another revision involving major changes 🤯
 ## New Features
-- feat: To make only the analysis available 
+- feat: To make only the analysis available
+- feat: Unless otherwise specified, “None” is returned if verification fails. On success, return keyId.
+## Bug Fixed
+- fix: Fixed incorrect hash generation
 # 0.4.0
 This is a major release containing disruptive changes! 💣
 ## Bug Fixed
