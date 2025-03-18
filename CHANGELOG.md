@@ -1,3 +1,6 @@
+# 0.5.1
+## Bug Fixed
+- fix: To accept RSAPublicKey format, and body also supports dictionary format.
 # 0.5.0
 Following on from the last one, this is another revision involving major changes 🤯
 ## New Features

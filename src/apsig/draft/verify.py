@@ -1,12 +1,13 @@
 from typing import Union
 import base64
 from urllib.parse import urlparse
+import json
 
 import pytz
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from pyfill import datetime
 from typing_extensions import deprecated
 
@@ -51,7 +52,7 @@ class draftVerifier:
 
 class Verifier:
     def __init__(
-        self, public_pem: str, method: str, url: str, headers: dict, body: bytes = b""
+        self, public_pem: Union[rsa.RSAPublicKey, str], method: str, url: str, headers: dict, body: bytes | dict = b""
     ) -> None:
         """
         Args:
@@ -61,12 +62,20 @@ class Verifier:
             headers (dict): A dictionary of HTTP headers, including the signature and other relevant information.
             body (bytes, optional): The request body. Defaults to an empty byte string.
         """
-        self.public_pem = public_pem
+        if isinstance(public_pem, str) or isinstance(public_pem, bytes):
+            self.public_key = serialization.load_pem_public_key(
+                public_pem.encode("utf-8") if isinstance(public_pem, str) else public_pem, backend=default_backend()
+            )
+        else:
+            self.public_key = public_pem
         self.method = method
         self.url = url
         self.headers_raw = headers
         self.headers = {key.lower(): value for key, value in headers.items()}
-        self.body = body
+        if isinstance(body, dict):
+            self.body = json.dumps(body, separators=(',', ':')).encode("utf-8")
+        else:
+            self.body = body
 
     def __decode_sign(self, signature):
         return base64.standard_b64decode(signature)
@@ -120,12 +129,8 @@ class Verifier:
             signature_headers, headers=signed_headers
         ).encode("utf-8")
 
-        public_key = serialization.load_pem_public_key(
-            self.public_pem.encode("utf-8"), backend=default_backend()
-        )
-
         try:
-            public_key.verify(
+            self.public_key.verify(
                 signature, signature_string, padding.PKCS1v15(), hashes.SHA256()
             )
         except InvalidSignature:
