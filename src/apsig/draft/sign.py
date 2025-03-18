@@ -1,5 +1,7 @@
 from typing import Any
 from typing_extensions import deprecated
+import json
+
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives import hashes
 
@@ -17,7 +19,7 @@ class draftSigner:
         return signer.sign()
 
 class Signer:
-    def __init__(self, headers: dict[Any, Any], private_key: rsa.RSAPrivateKey, method: str, url: str, key_id: str, body: bytes=b"") -> None:
+    def __init__(self, headers: dict[Any, Any], private_key: rsa.RSAPrivateKey, method: str, url: str, key_id: str, body: bytes | dict=b"") -> None:
         """Signs an HTTP request with a digital signature.
 
         Args:
@@ -45,7 +47,10 @@ class Signer:
         self.method = method
         self.url = url
         self.key_id = key_id
-        self.body = body
+        if isinstance(body, dict):
+            self.body = json.dumps(body, separators=(',', ':')).encode("utf-8")
+        else:
+            self.body = body
         
         if not self.headers.get("Host"):
             self.headers["Host"] = self.parsed_url.netloc
