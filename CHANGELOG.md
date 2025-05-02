@@ -1,3 +1,6 @@
+# 0.5.2
+## New Features
+- apsig now supports creation and verification HTTP signatures without body!
 # 0.5.1
 ## Bug Fixed
 - fix: To accept RSAPublicKey format, and body also supports dictionary format.
