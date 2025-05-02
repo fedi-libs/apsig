@@ -84,7 +84,6 @@ class Signer:
 
     def sign(self) -> dict:
         signature_string = build_string(self.headers).encode("utf-8")
-        print(signature_string)
         signature = self.__sign_document(signature_string)
         signed = self.build_signature(self.key_id, signature)
         self.__generate_sign_header(signed)
