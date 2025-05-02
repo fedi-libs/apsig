@@ -55,7 +55,8 @@ class Signer:
         if not self.headers.get("Host"):
             self.headers["Host"] = self.parsed_url.netloc
 
-        self.__generate_digest(self.body)
+        if method.upper() != "GET":
+            self.__generate_digest(self.body)
 
     def __generate_sign_header(self, signature: str):
         self.headers["Signature"] = signature
