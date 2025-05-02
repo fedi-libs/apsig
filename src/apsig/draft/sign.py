@@ -48,7 +48,7 @@ class Signer:
         self.url = url
         self.key_id = key_id
         if isinstance(body, dict):
-            self.body = json.dumps(body, separators=(',', ':')).encode("utf-8")
+            self.body = json.dumps(body).encode("utf-8")
         else:
             self.body = body
         
