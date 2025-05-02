@@ -21,7 +21,7 @@ class draftVerifier:
         "apsig.draft.verify.draftVerifier is deprecated; use apsig.draft.verify.Verifier instead. This will be removed in apsig 1.0."
     )
     def verify(
-        public_pem: str, method: str, url: str, headers: dict, body: bytes = b""
+        public_pem: str, method: str, url: str, headers: dict, body: bytes = None
     ) -> tuple[bool, str]:
         """Verifies the digital signature of an HTTP request.
 
@@ -52,7 +52,7 @@ class draftVerifier:
 
 class Verifier:
     def __init__(
-        self, public_pem: Union[rsa.RSAPublicKey, str], method: str, url: str, headers: dict, body: bytes | dict = b""
+        self, public_pem: Union[rsa.RSAPublicKey, str], method: str, url: str, headers: dict, body: bytes | dict = None
     ) -> None:
         """
         Args:
@@ -140,13 +140,14 @@ class Verifier:
                 )
             return None
 
-        expected_digest = calculate_digest(self.body)
-        if headers.get("digest") != expected_digest:
-            if raise_on_fail:
-                raise VerificationFailed(
-                    "Digest mismatch"
-                )
-            return None
+        if self.body:
+            expected_digest = calculate_digest(self.body)
+            if headers.get("digest") != expected_digest:
+                if raise_on_fail:
+                    raise VerificationFailed(
+                        "Digest mismatch"
+                    )
+                return None
 
         date_header = headers.get("date")
         if date_header:
