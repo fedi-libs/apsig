@@ -13,6 +13,7 @@ dependencies = [
     "pyfill>=0.1.3",
     "typing-extensions>=4.12.2",
     "pytz>=2025.1",
+    "http-sf>=1.0.3",
 ]
 classifiers = [
         'Development Status :: 4 - Beta',
