@@ -6,6 +6,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 
 from apsig.draft import Signer, Verifier
+from apsig.exceptions import VerificationFailed, MissingSignature
 
 class TestSignatureFunctions(unittest.TestCase):
     @classmethod
@@ -49,10 +50,41 @@ class TestSignatureFunctions(unittest.TestCase):
             body=body.encode("utf-8"),
         )
 
-        is_valid, message = verifier.verify()
+        result = verifier.verify(raise_on_fail=True)
 
-        self.assertTrue(is_valid)
-        self.assertEqual(message, "Signature is valid")
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "https://example.com/users/johndoe#main-key")
+
+    def test_create_and_verify_signature_method_get(self):
+        date = email.utils.formatdate(usegmt=True)
+
+        method = "GET"
+        url = "https://example.com/api/resource"
+        headers = {
+            "Content-Type": "application/json",
+            "Date": date,
+        }
+
+        signer = Signer(
+            headers=headers,
+            private_key=self.private_key,
+            method=method,
+            url=url,
+            key_id="https://example.com/users/johndoe#main-key",
+        )
+
+        signed_headers = signer.sign()
+        verifier = Verifier(
+            public_pem=self.public_pem,
+            method=method,
+            url=url,
+            headers=signed_headers,
+        )
+
+        result = verifier.verify(raise_on_fail=True)
+
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "https://example.com/users/johndoe#main-key")
 
     def test_too_far_date(self):
         method = "POST"
@@ -81,10 +113,8 @@ class TestSignatureFunctions(unittest.TestCase):
             body=body.encode("utf-8"),
         )
 
-        is_valid, message = verifier.verify()
-
-        self.assertFalse(is_valid)
-        self.assertEqual(message, "Date header is too far from current time")
+        with self.assertRaises(VerificationFailed, msg="Date header is too far from current time"):
+            verifier.verify(raise_on_fail=True)
 
     def test_verify_invalid_signature(self):
         method = "POST"
@@ -104,10 +134,8 @@ class TestSignatureFunctions(unittest.TestCase):
             body=body.encode("utf-8"),
         )
 
-        is_valid, message = verifier.verify()
-
-        self.assertFalse(is_valid)
-        self.assertEqual(message, "Invalid signature")
+        with self.assertRaises(VerificationFailed, msg="Invalid signature"):
+            verifier.verify(raise_on_fail=True)
 
     def test_missing_signature_header(self):
         method = "POST"
@@ -125,10 +153,8 @@ class TestSignatureFunctions(unittest.TestCase):
             body=body.encode("utf-8"),
         )
 
-        is_valid, message = verifier.verify()
-
-        self.assertFalse(is_valid)
-        self.assertEqual(message, "Signature header is missing")
+        with self.assertRaises(MissingSignature, msg="Signature header is missing"):
+            verifier.verify(raise_on_fail=True)
 
 
 if __name__ == "__main__":

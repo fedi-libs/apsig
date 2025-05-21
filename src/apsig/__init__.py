@@ -4,6 +4,7 @@ from .draft.verify import draftVerifier
 from .ld_signature import LDSignature
 from .proof.sign import ProofSigner
 from .proof.verify import ProofVerifier
+from ._version import __version__  # noqa: F401
 
 __all__ = [
     "OIPSigner",
@@ -13,5 +14,5 @@ __all__ = [
     "draftSigner",
     "draftVerifier",
     "LDSignature",
-    "KeyUtil",
+    "KeyUtil"
 ]
