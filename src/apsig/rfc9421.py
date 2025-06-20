@@ -1,14 +1,20 @@
 import base64
+import email.utils
 import json
+
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives import serialization
 
 from apsig.draft.tools import calculate_digest
+from pyfill.datetime import utcnow
 
 class RFC9421Signer:
-    def __init__(self, private_key: ed25519.Ed25519PrivateKey, method: str, path: str, host: str, headers: dict):
+    def __init__(self, private_key: ed25519.Ed25519PrivateKey, key_id: str, method: str, path: str, host: str, headers: dict):
         self.private_key = private_key
+        self.key_id = key_id
+        if not headers.get("date") and not headers.get("Date"):
+            headers["date"] = email.utils.formatdate(usegmt=True)
         self.headers =  {k.lower(): v for k, v in headers.items()}
         self.sign_headers = ["date", "@method", "@path", "@authority", "content-type", "content-length"]
         self.special_keys = {
@@ -41,22 +47,21 @@ class RFC9421Signer:
     def __generate_sig_input(self):
         param = "("
         target_len = len(self.sign_headers)
+        timestamp = utcnow()
         for p in self.sign_headers:
             param += f'"{p}"'
             if p != self.sign_headers[target_len - 1]:
                 param += " "
         param += ");"
-        param += "created=1618884473;"
-        param += 'keyid="test-key-ed25519"'
+        param += f"created={timestamp.timestamp()};"
+        param += f'keyid="{self.key_id}"'
         return param
-
-    def __generate_rfc8792_digest(self):
-        pass
 
     def sign(self, body: bytes | dict=b""):
         if isinstance(body, dict):
             body = json.dumps(body).encode("utf-8")
 
+        self.headers["content-length"] = str(len(body))
         base = self.build_base()
         signed = self.private_key.sign(base)
         headers = self.headers.copy()
@@ -73,5 +78,5 @@ class RFC9421Verifier:
         raise NotImplementedError
     
 # priv = ed25519.Ed25519PrivateKey.generate()
-# signer = RFC9421Signer(priv, "post", "/", "example.com", {"Content-Type": "application/json", "Content-Length": 18, "Date": "Tue, 20 Apr 2021 02:07:55 GMT"})
+# signer = RFC9421Signer(priv, "", "post", "/", "example.com", {"Content-Type": "application/json", "Content-Length": 18, "Date": "Tue, 20 Apr 2021 02:07:55 GMT"})
 # print(signer.sign({"key": "value"})) # '{"key": "value"}'
