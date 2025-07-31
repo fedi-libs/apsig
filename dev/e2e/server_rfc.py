@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 from pprint import pprint
 import random
@@ -65,6 +66,8 @@ async def send(request: Request):
 
     if url == "None":
         return {"error": "url is required"}
+    #await asyncio.sleep(3)
+    #return {"resp": "Failed to verify the request signature.", "status": 401}
     async with aiohttp.ClientSession() as session:
         body = {
             "@context": [
@@ -101,6 +104,6 @@ async def send(request: Request):
 
 
 pin = random.randint(1000, 9999)
-pin = 1751
+#pin = 1751
 print("Server Pin is: " + str(pin))
 uvicorn.run(app, host="0.0.0.0")
