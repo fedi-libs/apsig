@@ -109,7 +109,7 @@ class RFC9421Signer:
         headers_req = headers.copy()
         headers_req["Signature"] = f"sig1=:{self.generate_signature_header(signed)}:"
         headers_req["content-digest"] = f"sha-256=:{calculate_digest(body)}:"
-        headers_req["Signature-Input"] = f"sig-b26={self.__generate_sig_input()}"
+        headers_req["Signature-Input"] = f"sig1={self.__generate_sig_input()}"
         return headers_req
 
 class RFC9421Verifier:

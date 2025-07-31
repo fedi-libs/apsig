@@ -1,11 +1,45 @@
 from apsig import KeyUtil
-
+from apmodel import Person, Multikey
+from apmodel.security.cryptographickey import CryptographicKey
 
 def fake(publicKeys: dict):
     keyutl = KeyUtil(private_key=publicKeys["ed25519-key"])
-    return {
+    """
+    CryptographicKey(
+            id="https://apsig.amase.cc/actor#main-key",
+            controller="https://apsig.amase.cc/actor",
+            owner="https://apsig.amase.cc/actor",
+            publicKeyPem=publicKeys["publicKeyPem"].decode("utf-8"),
+        )
+    """
+    p = Person(
+        id="https://apsig.amase.cc/actor",
+        inbox="https://apsig.amase.cc/actor/inbox",
+        outbox="https://apsig.amase.cc/actor/outbox",
+        publicKey={
+            "id": "https://apsig.amase.cc/actor#main-key",
+            "controller": "https://apsig.amase.cc/actor",
+            "owner": "https://apsig.amase.cc/actor",
+            "publicKeyPem": publicKeys["publicKeyPem"].decode("utf-8"),
+            "type": "CryptographicKey"
+        },
+        assertionMethod=[
+            Multikey(
+                id="https://apsig.amase.cc/actor#ed25519-key",
+                controller="https://apsig.amase.cc/actor",
+                publicKeyMultibase=keyutl.encode_multibase()
+            )
+        ],
+        preferredUsername="apsig_dev",
+        name="APSig Test Actor",
+        summary="testing purposes only, don't use on production environment!",
+        url="https://apsig.amase.cc/actor"
+    )
+    return p.to_dict()
+    {
         "@context": [
             "https://www.w3.org/ns/activitystreams",
+            "https://w3id.org/security"
             "https://w3id.org/security/v1",
             "https://w3id.org/security/data-integrity/v1",
             "https://www.w3.org/ns/did/v1",
