@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 import base64
 from urllib.parse import urlparse
 import json
@@ -21,7 +21,7 @@ class draftVerifier:
         "apsig.draft.verify.draftVerifier is deprecated; use apsig.draft.verify.Verifier instead. This will be removed in apsig 1.0."
     )
     def verify(
-        public_pem: str, method: str, url: str, headers: dict, body: bytes = None
+        public_pem: str, method: str, url: str, headers: dict, body: Optional[bytes] = None
     ) -> tuple[bool, str]:
         """Verifies the digital signature of an HTTP request.
 
@@ -48,11 +48,12 @@ class draftVerifier:
             return False, str(e)
         if result:
             return True, "Signature is valid"
+        return False, ""
 
 
 class Verifier:
     def __init__(
-        self, public_pem: Union[rsa.RSAPublicKey, str], method: str, url: str, headers: dict, body: bytes | dict = None
+        self, public_pem: Union[rsa.RSAPublicKey, str], method: str, url: str, headers: dict, body: bytes | dict | None = None, clock_skew: int = 300
     ) -> None:
         """
         Args:
@@ -61,13 +62,17 @@ class Verifier:
             url (str): The URL of the request.
             headers (dict): A dictionary of HTTP headers, including the signature and other relevant information.
             body (bytes, optional): The request body. Defaults to an empty byte string.
+            clock_skew (int, optional): The number of seconds to allow for clock skew. Defaults to 300.
         """
         if isinstance(public_pem, str) or isinstance(public_pem, bytes):
-            self.public_key = serialization.load_pem_public_key(
+            pk = serialization.load_pem_public_key(
                 public_pem.encode("utf-8") if isinstance(public_pem, str) else public_pem, backend=default_backend()
             )
         else:
-            self.public_key = public_pem
+            pk = public_pem
+        if not isinstance(pk, rsa.RSAPublicKey):
+            raise ValueError("Invalid Key Type")
+        self.public_key: rsa.RSAPublicKey = pk
         self.method = method
         self.url = url
         self.headers_raw = headers
@@ -76,6 +81,7 @@ class Verifier:
             self.body = json.dumps(body, separators=(',', ':')).encode("utf-8")
         else:
             self.body = body
+        self.clock_skew = clock_skew
 
     def __decode_sign(self, signature):
         return base64.standard_b64decode(signature)
@@ -117,7 +123,7 @@ class Verifier:
                 )
             return None
 
-        signed_headers = signature_parts["headers"].split()
+        signed_headers = [h.lower() for h in signature_parts["headers"].split()]
 
         parsed_url = urlparse(self.url)
 
@@ -129,25 +135,21 @@ class Verifier:
             signature_headers, headers=signed_headers
         ).encode("utf-8")
 
+        if self.body:
+            expected_digest = calculate_digest(self.body)
+            if headers.get("digest") != expected_digest:
+                if raise_on_fail:
+                    raise VerificationFailed("Digest mismatch")
+                return None
+
         try:
             self.public_key.verify(
                 signature, signature_string, padding.PKCS1v15(), hashes.SHA256()
             )
         except InvalidSignature:
             if raise_on_fail:
-                raise VerificationFailed(
-                    "Invalid signature"
-                )
+                raise VerificationFailed("Invalid signature")
             return None
-
-        if self.body:
-            expected_digest = calculate_digest(self.body)
-            if headers.get("digest") != expected_digest:
-                if raise_on_fail:
-                    raise VerificationFailed(
-                        "Digest mismatch"
-                    )
-                return None
 
         date_header = headers.get("date")
         if date_header:
@@ -158,7 +160,7 @@ class Verifier:
             gmt_time = gmt_tz.localize(date)
             request_time = gmt_time.astimezone(pytz.utc)
             current_time = datetime.utcnow()
-            if abs((current_time - request_time).total_seconds()) > 3600:
+            if abs((current_time - request_time).total_seconds()) > self.clock_skew:
                 if raise_on_fail:
                     raise VerificationFailed(
                         "Date header is too far from current time"
