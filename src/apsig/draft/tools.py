@@ -7,12 +7,14 @@ def calculate_digest(body: bytes | str):
     hash_bytes = digest
     return "SHA-256=" + base64.standard_b64encode(hash_bytes).decode("utf-8")
 
-def build_string(strings: dict, headers: list = []) -> str:
-    if headers:
-        header_list = []
-        for key in headers:
-            header_list.append(f"{key}: {strings[key.lower()]}")
-        result = "\n".join(header_list)
-    else:
-        result = "\n".join(f"{key.lower()}: {value}" for key, value in strings.items())
-    return result
+def build_string(strings: dict, headers: list) -> str:
+    """Builds the signing string from a dictionary of headers and a list of header names.
+
+    Args:
+        strings (dict): A dictionary containing header values, with lowercase keys.
+        headers (list): An ordered list of lowercase header names to include in the string.
+
+    Returns:
+        str: The formatted signing string.
+    """
+    return "\n".join(f"{key}: {strings[key]}" for key in headers)
