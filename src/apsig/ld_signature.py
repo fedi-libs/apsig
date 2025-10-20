@@ -1,22 +1,23 @@
 # This code was ported from Takahe.
 
-from typing import Union
-import datetime
 import base64
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
+import datetime
+import json
+from typing import Optional, Union, cast
 
-from pyld import jsonld
 from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from multiformats import multibase, multicodec
+from pyld import jsonld
 
 from .__polyfill.datetime import utcnow
-from multiformats import multibase, multicodec
 from .exceptions import MissingSignature, UnknownSignature, VerificationFailed
 
+
 class LDSignature:
-    """A class for signing and verifying Linked Data signatures using the RSA signature algorithm. 
+    """A class for signing and verifying Linked Data signatures using the RSA signature algorithm.
 
     Attributes:
         private_key (rsa.RSAPrivateKey): The RSA private key used for signing.
@@ -37,6 +38,8 @@ class LDSignature:
         norm_form = jsonld.normalize(
             data, {"algorithm": "URDNA2015", "format": "application/n-quads"}
         )
+        if isinstance(norm_form, dict):
+            norm_form = json.dumps(norm_form, ensure_ascii=False)
         digest = hashes.Hash(hashes.SHA256())
         digest.update(norm_form.encode("utf8"))
         return digest.finalize().hex().encode("ascii")
@@ -46,8 +49,8 @@ class LDSignature:
         doc: dict,
         creator: str,
         private_key: rsa.RSAPrivateKey,
-        options: dict = None,
-        created: datetime.datetime = None,
+        options: Optional[dict[str, str | datetime.datetime]] = None,
+        created: Optional[datetime.datetime] = None,
     ):
         """Signs the provided document using the specified RSA private key.
 
@@ -56,34 +59,48 @@ class LDSignature:
             creator (str): The identifier of the creator of the document.
             private_key (rsa.RSAPrivateKey): The RSA private key used for signing.
             options (dict, optional): Additional signing options. Defaults to None.
-            created (datetime.datetime, optional): The timestamp when the signature is created. 
+            created (datetime.datetime, optional): The timestamp when the signature is created.
                 Defaults to the current UTC time if not provided.
 
         Returns:
             dict: The signed document containing the original data and the signature.
         """
-        options: dict[str, str] = {
-            "@context": "https://w3c-ccg.github.io/security-vocab/contexts/security-v1.jsonld", # "https://w3id.org/identity/v1"
+        if created is None:
+            created_str = utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        else:
+            created_str = created.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        
+        default_options: dict[str, str | datetime.datetime] = {
+            "@context": "https://w3c-ccg.github.io/security-vocab/contexts/security-v1.jsonld",  # "https://w3id.org/identity/v1"
             "creator": creator,
-            "created": created or utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "created": created_str,
         }
+        if options:
+            default_options.update(options)
 
-        to_be_signed = self.__normalized_hash(options) + self.__normalized_hash(doc)
+        to_be_signed = self.__normalized_hash(default_options) + self.__normalized_hash(
+            doc
+        )
 
-        signature = base64.b64encode(private_key.sign(
-            to_be_signed, padding.PKCS1v15(), hashes.SHA256()
-        ))
+        signature = base64.b64encode(
+            private_key.sign(to_be_signed, padding.PKCS1v15(), hashes.SHA256())
+        )
 
         return {
             **doc,
             "signature": {
-                **options,
+                **default_options,
                 "type": "RsaSignature2017",
                 "signatureValue": signature.decode("ascii"),
             },
         }
 
-    def verify(self, doc: dict, public_key: rsa.RSAPublicKey | str, raise_on_fail: bool = False) -> Union[str, None]:
+    def verify(
+        self,
+        doc: dict,
+        public_key: rsa.RSAPublicKey | str,
+        raise_on_fail: bool = False,
+    ) -> Union[str, None]:
         """Verifies the signature of the provided document against the given public key.
 
         Args:
@@ -104,7 +121,9 @@ class LDSignature:
                 if raise_on_fail:
                     raise ValueError("public_key must be RSA PublicKey.")
                 return None
-            public_key = serialization.load_pem_public_key(data, backend=default_backend())
+            public_key = cast(rsa.RSAPublicKey, serialization.load_pem_public_key(
+                data, backend=default_backend()
+            ))
         try:
             document = doc.copy()
             signature = document.pop("signature")
@@ -121,7 +140,9 @@ class LDSignature:
             if raise_on_fail:
                 raise UnknownSignature("Unknown signature type")
             return None
-        final_hash = self.__normalized_hash(options) + self.__normalized_hash(document)
+        final_hash = self.__normalized_hash(options) + self.__normalized_hash(
+            document
+        )
         try:
             public_key.verify(
                 base64.b64decode(signature["signatureValue"]),
