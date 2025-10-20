@@ -191,7 +191,6 @@ class RFC9421Verifier:
             created_timestamp = dt.datetime.fromtimestamp(int(created))
         else:
             raise ValueError("Unknown created value")
-        gmt_tz = pytz.timezone("GMT")
         request_time = created_timestamp.astimezone(pytz.utc)
         current_time = dt.datetime.now(dt.UTC)
         if abs((current_time - request_time).total_seconds()) > self.clock_skew:
