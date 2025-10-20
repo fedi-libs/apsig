@@ -31,7 +31,7 @@ classifiers = [
         'Topic :: Security',
         'Natural Language :: English',
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 readme = "README.md"
 license = {text = "MIT"}
 
@@ -65,7 +65,4 @@ dev = [
     "aiohttp>=3.11.12",
     "notturno[asgi]>=0.1.4",
     "trio>=0.28.0",
-]
-dev = [
-    "apmodel>=0.3.1",
 ]
