@@ -19,7 +19,7 @@ class draftSigner:
         return signer.sign()
 
 class Signer:
-    def __init__(self, headers: dict[Any, Any], private_key: rsa.RSAPrivateKey, method: str, url: str, key_id: str, body: bytes | dict=b"") -> None:
+    def __init__(self, headers: dict[Any, Any], private_key: rsa.RSAPrivateKey, method: str, url: str, key_id: str, body: bytes | dict=b"", signed_headers: list[str] | None = None) -> None:
         """Signs an HTTP request with a digital signature.
 
         Args:
@@ -29,20 +29,11 @@ class Signer:
             headers (dict): A dictionary of HTTP headers that will be signed.
             key_id (str): The key identifier to include in the signature header.
             body (bytes, optional): The request body. Defaults to an empty byte string.
-
-        Returns:
-            dict: The HTTP headers with the signature added.
+            signed_headers (list[str], optional): A list of headers to include in the signature. Defaults to a secure set of headers.
 
         Raises:
             ValueError: If the signing process fails due to invalid parameters.
         """
-        if not headers.get("date") and not headers.get("Date"):
-            headers["date"] = email.utils.formatdate(usegmt=True)
-        self.parsed_url: ParseResult = urlparse(url)
-        self.headers = {
-            **headers,
-            "(request-target)": f"{method.lower()} {self.parsed_url.path}"
-        }
         self.private_key = private_key
         self.method = method
         self.url = url
@@ -51,25 +42,41 @@ class Signer:
             self.body = json.dumps(body).encode("utf-8")
         else:
             self.body = body
+
+        self.raw_headers = {str(k).lower(): v for k, v in headers.items()}
+
+        if "date" not in self.raw_headers:
+            self.raw_headers["date"] = email.utils.formatdate(usegmt=True)
         
-        if not self.headers.get("Host"):
-            self.headers["Host"] = self.parsed_url.netloc
+        self.parsed_url: ParseResult = urlparse(url)
+        if "host" not in self.raw_headers:
+            self.raw_headers["host"] = self.parsed_url.netloc
+
+        self.request_target = f"{method.lower()} {self.parsed_url.path}"
 
         if method.upper() != "GET":
-            self.__generate_digest(self.body)
+            if "digest" not in self.raw_headers:
+                self.raw_headers["digest"] = calculate_digest(self.body)
 
-    def __generate_sign_header(self, signature: str):
-        self.headers["Signature"] = signature
-        self.headers["Authorization"] = f"Signature {signature}"
+        if signed_headers:
+            self.signed_headers = [h.lower() for h in signed_headers]
+            if "(request-target)" not in self.signed_headers:
+                self.signed_headers.insert(0, "(request-target)")
+        else:
+            default_headers = ["(request-target)", "date", "host"]
+            if method.upper() != "GET":
+                default_headers.append("digest")
+            self.signed_headers = default_headers
+
+    def __generate_sign_header(self, signature: str, headers: dict) -> dict:
+        headers["Signature"] = signature
+        headers["Authorization"] = f"Signature {signature}"
+        return headers
 
     def __sign_document(self, document: bytes):
         return base64.standard_b64encode(self.private_key.sign(document, padding.PKCS1v15(), hashes.SHA256())).decode("utf-8")
 
-    def __generate_digest(self, body: bytes | str):
-        if not self.headers.get("digest") and not self.headers.get("Digest"):
-            self.headers["digest"] = calculate_digest(body)
-        else:
-            return self.headers.get("digest")
+    
     
     def build_signature(self, key_id: str, signature: str, algorithm: str = "rsa-sha256"):
         if algorithm != "rsa-sha256":
@@ -78,17 +85,23 @@ class Signer:
         return ",".join([
             f'keyId="{key_id}"',
             f'algorithm="{algorithm}"',
-            f'headers="{" ".join(key.lower() for key in self.headers.keys())}"',
+            f'headers="{" ".join(self.signed_headers)}"',
             f'signature="{signature}"'
         ])
 
     def sign(self) -> dict:
-        signature_string = build_string(self.headers).encode("utf-8")
+        signing_string_dict = {**self.raw_headers, "(request-target)": self.request_target}
+        
+        for header in self.signed_headers:
+            if header not in signing_string_dict:
+                raise ValueError(f"Header '{header}' specified in signed_headers is not in the request headers.")
+
+        signature_string = build_string(signing_string_dict, headers=self.signed_headers).encode("utf-8")
+        
         signature = self.__sign_document(signature_string)
         signed = self.build_signature(self.key_id, signature)
-        self.__generate_sign_header(signed)
 
-        headers = self.headers.copy()
-        headers.pop("(request-target)")
+        final_headers = self.raw_headers.copy()
+        final_headers = self.__generate_sign_header(signed, final_headers)
 
-        return headers
+        return final_headers

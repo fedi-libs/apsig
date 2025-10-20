@@ -34,18 +34,25 @@ classifiers = [
 requires-python = ">=3.10"
 readme = "README.md"
 license = {text = "MIT"}
-urls.Source = "https://github.com/AmaseCocoa/apsig"
+
+[project.urls]
+Repository = "https://github.com/fedi-libs/apsig"
+Issues = "https://github.com/fedi-libs/apsig/issues"
+Changelog = "https://github.com/fedi-libs/apsig/blob/main/CHANGELOG.md"
 
 [build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
+[tool.hatch.version]
+source = "vcs"
+fallback-version = "0.0.0"
 
-[tool.pdm]
-distribution = true
+[tool.hatch.version.raw-options] 
+version_scheme = "no-guess-dev"  
 
-[tool.pdm.scripts]
-test = "python -m unittest discover -s tests"
+[tool.hatch.build.hooks.vcs]
+version-file = "src/apsig/_version.py"
 
 [tool.pdm.version]
 source = "scm"
@@ -53,7 +60,8 @@ write_to = "apsig/_version.py"
 write_template = "__version__ = '{}'"
 
 [dependency-groups]
-e2e = [
+dev = [
+    "git-cliff>=2.10.0",
     "aiohttp>=3.11.12",
     "notturno[asgi]>=0.1.4",
     "trio>=0.28.0",
