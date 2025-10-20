@@ -1,11 +1,23 @@
 import base64
+import datetime as dt
 import email.utils
 import json
+from typing import Any, List, Tuple, cast
 
+import pytz
 from cryptography.hazmat.primitives.asymmetric import ed25519
+from http_sf import parse
+from http_sf.types import (
+    BareItemType,
+    InnerListType,
+    ItemType,
+    ParamsType,
+)
+from multiformats import multibase, multicodec
 from pyfill.datetime import utcnow
 
 from apsig.draft.tools import calculate_digest
+from apsig.exceptions import MissingSignature, VerificationFailed
 
 
 class RFC9421Signer:
@@ -20,6 +32,7 @@ class RFC9421Signer:
             "content-type",
             "content-length",
         ]
+        
 
     def build_base(self, special_keys: dict, headers: dict) -> bytes:
         headers_new = ""
@@ -76,7 +89,7 @@ class RFC9421Signer:
         headers_new.append(
             f'"@signature-params": {self.__generate_sig_input()}'
         )
-        return "\n".join(headers_new)
+        return ("\n".join(headers_new)).encode("utf-8")
 
     def generate_signature_header(self, signature: bytes) -> str:
         return base64.b64encode(signature).decode("utf-8")
@@ -84,7 +97,7 @@ class RFC9421Signer:
     def __generate_sig_input(self):
         param = "("
         target_len = len(self.sign_headers)
-        timestamp = utcnow()
+        timestamp = dt.datetime.now(dt.UTC)
         for p in self.sign_headers:
             param += f'"{p}"'
             if p != self.sign_headers[target_len - 1]:
@@ -105,14 +118,12 @@ class RFC9421Signer:
         if isinstance(body, dict):
             body = json.dumps(body).encode("utf-8")
 
-        if not headers.get("Date"):
-            headers["Date"] = email.utils.formatdate(usegmt=True)
-        if (
-            headers.get("content-length") is None
-            or headers.get("Content-Length") is None
-        ):
-            headers["content-length"] = str(len(body))
         headers = {k.lower(): v for k, v in headers.items()}
+        if not headers.get("date"):
+            headers["date"] = email.utils.formatdate(usegmt=True)
+        if not headers.get("content-length"):
+            headers["content-length"] = str(len(body))
+
         special_keys = {
             "@method": method.upper(),
             "@path": path,
@@ -131,44 +142,191 @@ class RFC9421Signer:
 
 
 class RFC9421Verifier:
-    def __init__(self):
-        pass
+    def __init__(
+        self,
+        public_key: ed25519.Ed25519PublicKey | str,
+        method: str,
+        path: str,
+        host: str,
+        headers: dict[str, str],
+        body: bytes | dict | None = None,
+        clock_skew: int = 300,
+    ):
+        if isinstance(public_key, str):
+            codec, data = multicodec.unwrap(multibase.decode(public_key))
+            if codec.name != "ed25519-pub":
+                raise TypeError("PublicKey must be ed25519.")
+            self.public_key: ed25519.Ed25519PublicKey = (
+                ed25519.Ed25519PublicKey.from_public_bytes(data)
+            )
+        else:
+            self.public_key: ed25519.Ed25519PublicKey = public_key
+        self.clock_skew = clock_skew
+        self.method = method.upper()
+        self.path = path
+        self.host = host
+        self.headers = {key.lower(): value for key, value in headers.items()}
 
-    def __build_signature_base(
-        self, special_keys: dict[str, str], headers: dict[str, str]
-    ) -> bytes:
-        headers_new = []
-        headers = headers.copy()
-        for h in self.sign_headers:
-            if h in ["@method", "@path", "@authority"]:
-                v = special_keys.get(h)
-
-                if v:
-                    headers_new.append(f'"{h}": {v}')
-                else:
-                    raise ValueError(f"Missing Value: {h}")
-            elif h == "@signature-params":
-                v = special_keys.get(h)
-
-                if v:
-                    headers_new.append(f'"{h}": {self.__generate_sig_input()}')
-                else:
-                    raise ValueError(f"Missing Value: {h}")
-            else:
-                v = headers.get(h)
-                if v:
-                    headers_new.append(f'"{h}": {v}')
-                else:
-                    raise ValueError(f"Missing Header Value: {h}")
-        headers_new.append(
-            f'"@signature-params": {self.__generate_sig_input()}'
+    def __expect_value_and_params_member(
+        self,
+        member: Any,
+    ) -> Tuple[ItemType | InnerListType, ParamsType]:
+        if not isinstance(member, tuple) or len(member) != 2:
+            raise ValueError("expected a (value, params) tuple")
+        value, params = member
+        if not isinstance(params, dict):
+            raise ValueError("expected params to be a dict")
+        return cast(
+            Tuple[ItemType | InnerListType, ParamsType], (value, params)
         )
-        return "\n".join(headers_new)
 
-    def verify(self):
-        raise NotImplementedError
+    def __generate_sig_input(
+        self, headers: List[BareItemType], params: ParamsType
+    ):
+        created = params.get("created")
+
+        if isinstance(created, dt.datetime):
+            created_timestamp = created
+        elif isinstance(created, int):
+            created_timestamp = dt.datetime.fromtimestamp(created)
+        elif isinstance(created, str):
+            created_timestamp = dt.datetime.fromtimestamp(int(created))
+        else:
+            raise ValueError("Unknown created value")
+        gmt_tz = pytz.timezone("GMT")
+        gmt_time = gmt_tz.localize(created_timestamp)
+        request_time = created_timestamp.astimezone(pytz.utc)
+        current_time = dt.datetime.now(dt.UTC)
+        if abs((current_time - request_time).total_seconds()) > self.clock_skew:
+            raise VerificationFailed(
+                f"property created is too far from current time ({current_time}): {request_time}"
+            )
+
+        param = "("
+        target_len = len(headers)
+        for p in headers:
+            param += f'"{p}"'
+            if p != headers[target_len - 1]:
+                param += " "
+        param += ");"
+        param += f"created={int(created_timestamp.timestamp())};"
+        param += f'keyid="{params.get("keyid")}"'
+        return param
+
+    def __rebuild_sigbase(
+        self, headers: List[BareItemType], params: ParamsType
+    ) -> bytes:
+        special_keys = {
+            "@method": self.method,
+            "@path": self.path,
+            "@authority": self.host,
+        }
+        base = []
+        for h in cast(List[str], headers):
+            if h in ["@method", "@path", "@authority"]:
+                base.append(f'"{h}": {special_keys.get(h)}')
+            else:
+                base.append(f'"{h}": {self.headers.get(h)}')
+        base.append(
+            f'"@signature-params": {self.__generate_sig_input(headers=headers, params=params)}'
+        )
+        return ("\n".join(base)).encode("utf-8")
+
+    def verify(self, raise_on_fail: bool = False) -> str | None:
+        signature = self.headers.get("signature")
+        if not signature:
+            if raise_on_fail:
+                raise MissingSignature("Signature header is missing")
+            return None
+
+        signature_input = self.headers.get("signature-input")
+        if not signature_input:
+            if raise_on_fail:
+                raise MissingSignature("Signature-Input header is missing")
+            return None
+
+        signature_input_parsed = parse(
+            signature_input.encode("utf-8"), tltype="dictionary"
+        )
+        signature_parsed = parse(signature.encode("utf-8"), tltype="dictionary")
+
+        if not isinstance(signature_input_parsed, dict):
+            raise VerificationFailed(
+                f"Unsupported Signature-Input type: {type(signature_input_parsed)}"
+            )
+
+        if not isinstance(signature_parsed, dict):
+            raise VerificationFailed(
+                f"Unsupported Signature type: {type(signature_parsed)}"
+            )
+
+        for k, v in signature_input_parsed.items():
+            try:
+                value, params = self.__expect_value_and_params_member(v)
+                if isinstance(value, list):
+                    headers: List[BareItemType] = [
+                        itm[0] if isinstance(itm, tuple) else itm
+                        for itm in value
+                    ]
+                else:
+                    raise ValueError(
+                        "expected the value to be an inner-list (list of items)"
+                    )
+
+                created = params.get("created")
+                key_id = str(params.get("keyid"))
+
+                if not created:
+                    raise VerificationFailed("created not found.")
+                if not key_id:
+                    raise VerificationFailed("keyid not found.")
+
+                sigi = self.__rebuild_sigbase(headers, params)
+                signature_bytes = signature_parsed.get(k)
+                if not isinstance(signature_bytes, tuple):
+                    raise VerificationFailed(f"Unknown Signature: {type(signature_bytes)}")
+
+                sig_val = None
+                for sig in cast(InnerListType, signature_bytes):
+                    if isinstance(sig, bytes):
+                        sig_val = sig
+                        break
+                if sig_val is None:
+                    raise ValueError("No Signature found.")
+                try:
+                    self.public_key.verify(sig_val, sigi)
+                    return key_id
+                except Exception as e:
+                    if raise_on_fail:
+                        raise VerificationFailed(str(e))
+                    return None
+            except ValueError:
+                continue
+
+        if raise_on_fail:
+            raise VerificationFailed("RFC9421 Signature verification failed.")
+        return None
 
 
 priv = ed25519.Ed25519PrivateKey.generate()
-signer = RFC9421Signer(priv, "")
-print(signer.sign("post", "/", "example.com", {"Content-Type": "application/json", "Content-Length": 18, "Date": "Tue, 20 Apr 2021 02:07:55 GMT"}, {"key": "value"})) # '{"key": "value"}'
+signer = RFC9421Signer(priv, "https://example.com/actor#ed25519-key")
+signed_header = signer.sign(
+    "post",
+    "/",
+    "example.com",
+    {
+        "Content-Type": "application/json",
+    },
+    {"key": "value"},
+)
+print(signed_header)
+
+verifier = RFC9421Verifier(
+    priv.public_key(),
+    "POST",
+    "/",
+    "example.com",
+    signed_header,
+    {"key": "value"},
+)
+print(verifier.verify(raise_on_fail=True))
