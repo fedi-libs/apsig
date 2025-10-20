@@ -14,7 +14,6 @@ from http_sf.types import (
     ParamsType,
 )
 from multiformats import multibase, multicodec
-from pyfill.datetime import utcnow
 
 from apsig.draft.tools import calculate_digest
 from apsig.exceptions import MissingSignature, VerificationFailed
@@ -32,7 +31,6 @@ class RFC9421Signer:
             "content-type",
             "content-length",
         ]
-        
 
     def build_base(self, special_keys: dict, headers: dict) -> bytes:
         headers_new = ""
@@ -194,7 +192,6 @@ class RFC9421Verifier:
         else:
             raise ValueError("Unknown created value")
         gmt_tz = pytz.timezone("GMT")
-        gmt_time = gmt_tz.localize(created_timestamp)
         request_time = created_timestamp.astimezone(pytz.utc)
         current_time = dt.datetime.now(dt.UTC)
         if abs((current_time - request_time).total_seconds()) > self.clock_skew:
@@ -284,7 +281,9 @@ class RFC9421Verifier:
                 sigi = self.__rebuild_sigbase(headers, params)
                 signature_bytes = signature_parsed.get(k)
                 if not isinstance(signature_bytes, tuple):
-                    raise VerificationFailed(f"Unknown Signature: {type(signature_bytes)}")
+                    raise VerificationFailed(
+                        f"Unknown Signature: {type(signature_bytes)}"
+                    )
 
                 sig_val = None
                 for sig in cast(InnerListType, signature_bytes):
@@ -308,25 +307,3 @@ class RFC9421Verifier:
         return None
 
 
-priv = ed25519.Ed25519PrivateKey.generate()
-signer = RFC9421Signer(priv, "https://example.com/actor#ed25519-key")
-signed_header = signer.sign(
-    "post",
-    "/",
-    "example.com",
-    {
-        "Content-Type": "application/json",
-    },
-    {"key": "value"},
-)
-print(signed_header)
-
-verifier = RFC9421Verifier(
-    priv.public_key(),
-    "POST",
-    "/",
-    "example.com",
-    signed_header,
-    {"key": "value"},
-)
-print(verifier.verify(raise_on_fail=True))
