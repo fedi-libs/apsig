@@ -20,7 +20,7 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Format code
-        uses: astral-sh/ruff-action@v3.2.2
+        uses: astral-sh/ruff-action@v3.5.1
         with:
           args: "format"
           src: "scripts/"
