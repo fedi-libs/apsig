@@ -1,6 +1,8 @@
+import asyncio
 import datetime
 from pprint import pprint
 import random
+import json
 
 import aiohttp
 import uvicorn
@@ -8,10 +10,11 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
 from faker.actor import fake
+from yarl import URL
 from notturno import Notturno
 from notturno.models.request import Request
 
-from apsig import ProofSigner
+from apsig.rfc9421 import RFC9421Signer
 
 app = Notturno()
 ed_privatekey = ed25519.Ed25519PrivateKey.generate()
@@ -26,7 +29,6 @@ actor_obj = fake(
         ),
     }
 )
-Proof = ProofSigner(private_key=ed_privatekey)
 now = datetime.datetime.now().isoformat(sep="T", timespec="seconds") + "Z"
 
 
@@ -57,12 +59,15 @@ async def note():
 
 @app.get("/send")
 async def send(request: Request):
-    user_pin = request.query.get("pin")
-    if int(user_pin) != pin:
+    user_pin = int(request.query.get("pin", b'0'))
+    if user_pin != pin:
         return {"error": "Missing Permission"}
-    url = request.query.get("url")
-    if url is None:
+    url = request.query.get("url", b'None').decode()
+
+    if url == "None":
         return {"error": "url is required"}
+    #await asyncio.sleep(3)
+    #return {"resp": "Failed to verify the request signature.", "status": 401}
     async with aiohttp.ClientSession() as session:
         body = {
             "@context": [
@@ -70,7 +75,7 @@ async def send(request: Request):
                 "https://w3id.org/security/data-integrity/v1",
             ],
             "id": "https://apsig.amase.cc/note",
-            "actor": actor_obj,
+            "actor": "https://apsig.amase.cc/actor",
             "type": "Create",
             "object": {
                 "id": "https://apsig.amase.cc/note",
@@ -79,26 +84,26 @@ async def send(request: Request):
                 "content": "Hello world",
             },
         }
-        signed = Proof.sign(
-            unsecured_document=body,
-            options={
-                "type": "DataIntegrityProof",
-                "cryptosuite": "eddsa-jcs-2022",
-                "proofPurpose": "assertionMethod",
-                "verificationMethod": "https://apsig.amase.cc/actor#ed25519-key",
-                "created": now,
-            },
-        )
+        target = URL(url)
+        signer = RFC9421Signer(private_key=ed_privatekey, key_id="https://apsig.amase.cc/actor#ed25519-key")
+        signed = signer.sign(body=body, method="POST", path=target.path, host=target.host + ":" + str(target.port) if target.port is not None else "", headers={"Content-Type": "application/activity+json"})
+        with open("./test.json", "w") as f:
+            json.dump(signed, f)
+
         pprint(signed)
         async with session.post(
-            url.decode("utf-8"),
-            json=signed,
-            headers={"Content-Type": "application/activity+json"},
+            url,
+            json=body,
+            headers=signed,
         ) as resp:
-            print(await resp.text())
-            print(resp.status)
+            text = await resp.text()
+            status = resp.status
+            print(text)
+            print(status)
+            return {"resp": text, "status": status}
 
 
 pin = random.randint(1000, 9999)
+#pin = 1751
 print("Server Pin is: " + str(pin))
 uvicorn.run(app, host="0.0.0.0")
