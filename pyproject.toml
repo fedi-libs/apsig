@@ -63,4 +63,6 @@ dev = [
     "aiohttp>=3.11.12",
     "notturno[asgi]>=0.1.4",
     "trio>=0.28.0",
+    "mkdocstrings-python>=2.0.1",
+    "zensical>=0.0.11",
 ]
