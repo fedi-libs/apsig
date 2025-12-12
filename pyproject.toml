@@ -1,9 +1,9 @@
 [project]
 name = "apsig"
 dynamic = ["version"]
-description = "Signature implementation used in ActivityPub."
+description = "apsig is collection of signature implemention used in ActivityPub."
 authors = [
-    {name = "AmaseCocoa", email = "amase.cocoa@gmail.com"},
+    {name = "AmaseCocoa", email = "cocoa@amase.cc"},
 ]
 dependencies = [
     "cryptography>=43.0.1",
