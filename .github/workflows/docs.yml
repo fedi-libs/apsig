@@ -2,8 +2,10 @@ name: Documentation
 on:
   push:
     branches:
-      - master
-      - main
+      - stable
+  workflow_dispatch:
+        
+      
 permissions:
   contents: read
   pages: write
