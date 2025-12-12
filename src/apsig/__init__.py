@@ -7,8 +7,6 @@ from .proof.verify import ProofVerifier
 from ._version import __version__  # noqa: F401
 
 __all__ = [
-    "OIPSigner",
-    "OIPVerifier",
     "ProofSigner",
     "ProofVerifier",
     "draftSigner",
