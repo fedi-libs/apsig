@@ -32,32 +32,6 @@ class RFC9421Signer:
             "content-length",
         ]
 
-    def build_base(self, special_keys: dict, headers: dict) -> bytes:
-        headers_new = ""
-        headers = headers.copy()
-        for h in self.sign_headers:
-            if h in ["@method", "@path", "@authority"]:
-                v = special_keys.get(h)
-
-                if v:
-                    headers_new += f'"{h}": {v}\n'
-                else:
-                    raise ValueError(f"Missing Value: {h}")
-            elif h == "@signature-params":
-                v = special_keys.get(h)
-
-                if v:
-                    headers_new += f'"{h}": {self.__generate_sig_input()}\n'
-                else:
-                    raise ValueError(f"Missing Value: {h}")
-            else:
-                v = headers.get(h)
-                if v:
-                    headers_new += f'"{h}": {v}\n'
-                else:
-                    raise ValueError(f"Missing Header Value: {h}")
-        return headers_new.encode("utf-8")
-
     def __build_signature_base(
         self, special_keys: dict[str, str], headers: dict[str, str]
     ) -> bytes:
@@ -79,8 +53,9 @@ class RFC9421Signer:
                 else:
                     raise ValueError(f"Missing Value: {h}")
             else:
-                v = headers.get(h)
-                if v:
+                v_raw = headers.get(h)
+                if v_raw is not None:
+                    v = v_raw.strip()
                     headers_new.append(f'"{h}": {v}')
                 else:
                     raise ValueError(f"Missing Header Value: {h}")
@@ -102,6 +77,7 @@ class RFC9421Signer:
                 param += " "
         param += ");"
         param += f"created={int(timestamp.timestamp())};"
+        param += 'alg="ed25519";'
         param += f'keyid="{self.key_id}"'
         return param
 
@@ -180,8 +156,10 @@ class RFC9421Verifier:
 
     def __generate_sig_input(
         self, headers: List[BareItemType], params: ParamsType
-    ):
+    ) -> str:
         created = params.get("created")
+        alg = params.get("alg")
+        keyid = params.get("keyid")
 
         if isinstance(created, dt.datetime):
             created_timestamp = created
@@ -206,7 +184,8 @@ class RFC9421Verifier:
                 param += " "
         param += ");"
         param += f"created={int(created_timestamp.timestamp())};"
-        param += f'keyid="{params.get("keyid")}"'
+        param += f'alg="{alg}";'
+        param += f'keyid="{keyid}"'
         return param
 
     def __rebuild_sigbase(
@@ -222,7 +201,12 @@ class RFC9421Verifier:
             if h in ["@method", "@path", "@authority"]:
                 base.append(f'"{h}": {special_keys.get(h)}')
             else:
-                base.append(f'"{h}": {self.headers.get(h)}')
+                v_raw = self.headers.get(h)
+                if v_raw is not None:
+                    v = v_raw.strip()
+                    base.append(f'"{h}": {v}')
+                else:
+                    raise ValueError(f"Missing Header Value: {h}")
         base.append(
             f'"@signature-params": {self.__generate_sig_input(headers=headers, params=params)}'
         )
@@ -271,11 +255,16 @@ class RFC9421Verifier:
 
                 created = params.get("created")
                 key_id = str(params.get("keyid"))
+                alg = params.get("alg")
 
                 if not created:
                     raise VerificationFailed("created not found.")
                 if not key_id:
                     raise VerificationFailed("keyid not found.")
+                if not alg:
+                    raise VerificationFailed("alg not found.")
+                if alg != "ed25519":
+                    raise VerificationFailed(f"Unsupported algorithm: {alg}")
 
                 sigi = self.__rebuild_sigbase(headers, params)
                 signature_bytes = signature_parsed.get(k)
