@@ -1,5 +1,8 @@
-# apsig
-![PyPI](https://img.shields.io/pypi/v/apsig) [![CodeQL](https://github.com/AmaseCocoa/apsig/actions/workflows/github-code-scanning/codeql/badge.svg?branch=main)](https://github.com/AmaseCocoa/apsig/actions/workflows/github-code-scanning/codeql)
+---
+icon: lucide/rocket
+---
+
+# Get started
 
 apsig is collection of signature implemention used in ActivityPub.
 
@@ -157,14 +160,6 @@ verified_creator = ld_signer.verify(
 
 print(f"Verified with creator: {verified_creator}")
 ```
-
-## Documents
-The document can be viewed [here](https://fedi-libs.github.io/apsig/).
-
-## Thanks
-- [Hong Minhee](https://github.com/dahlia) ([Fedify](https://fedify.dev/) Author)
-- [Takahē](https://github.com/jointakahe/takahe) Authors (apsig.LDSignature was ported from Takahē)
-- And All Contributor/Users
 
 ## License
 MIT License
