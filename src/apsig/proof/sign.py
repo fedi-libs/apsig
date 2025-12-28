@@ -7,10 +7,10 @@ from multiformats import multibase, multicodec
 
 class ProofSigner:
     """
-    A class for signing documents using the Ed25519 signature algorithm, 
+    A class for signing documents using the Ed25519 signature algorithm,
     implementing Object Integrity Proofs as specified in FEP-8b32.
 
-    This class provides methods to generate keys, sign data, 
+    This class provides methods to generate keys, sign data,
     canonicalize documents, and create integrity proofs.
 
     Attributes:
@@ -52,10 +52,14 @@ class ProofSigner:
 
     def hashing(self, transformed_document, canonical_proof_config):
         transformed_document_hash = hashlib.sha256(
-            transformed_document.encode("utf-8") if not isinstance(transformed_document, bytes) else transformed_document
+            transformed_document.encode("utf-8")
+            if not isinstance(transformed_document, bytes)
+            else transformed_document
         ).digest()
         proof_config_hash = hashlib.sha256(
-            canonical_proof_config.encode("utf-8") if not isinstance(canonical_proof_config, bytes) else canonical_proof_config
+            canonical_proof_config.encode("utf-8")
+            if not isinstance(canonical_proof_config, bytes)
+            else canonical_proof_config
         ).digest()
         return proof_config_hash + transformed_document_hash
 
@@ -81,7 +85,7 @@ class ProofSigner:
 
         proof["proofValue"] = multibase.encode(proof_bytes, "base58btc")
         return proof
-    
+
     def sign(self, unsecured_document: dict, options: dict):
         """Signs the unsecured document by creating a proof and returning the signed document.
 
@@ -92,5 +96,7 @@ class ProofSigner:
         Returns:
             dict: The signed document, including the proof.
         """
-        return {**unsecured_document, "proof": self.create_proof(unsecured_document, options)}
-
+        return {
+            **unsecured_document,
+            "proof": self.create_proof(unsecured_document, options),
+        }

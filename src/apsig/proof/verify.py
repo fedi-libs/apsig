@@ -1,17 +1,18 @@
-from typing import Union
 import hashlib
+from typing import Optional, Union
 
 import jcs
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from multiformats import multibase, multicodec
 
-from ..exceptions import VerificationFailed, UnknownSignature
+from ..exceptions import UnknownSignatureError, VerificationFailedError
+
 
 class ProofVerifier:
     """
-    A class for verifying documents signed using the Ed25519 signature algorithm, 
+    A class for verifying documents signed using the Ed25519 signature algorithm,
     implementing Object Integrity Proofs as specified in FEP-8b32.
-    
+
     Attributes:
         public_key (ed25519.Ed25519PublicKey): The Ed25519 public key used for verification.
 
@@ -27,7 +28,7 @@ class ProofVerifier:
         Initializes the ProofVerifier with a public key.
 
         Args:
-            public_key (ed25519.Ed25519PublicKey | str): 
+            public_key (ed25519.Ed25519PublicKey | str):
                 The Ed25519 public key as an object or a multibase-encoded string.
 
         Raises:
@@ -61,19 +62,25 @@ class ProofVerifier:
 
     def hashing(self, transformed_document, canonical_proof_config):
         transformed_document_hash = hashlib.sha256(
-            transformed_document.encode("utf-8") if not isinstance(transformed_document, bytes) else transformed_document
+            transformed_document.encode("utf-8")
+            if not isinstance(transformed_document, bytes)
+            else transformed_document
         ).digest()
         proof_config_hash = hashlib.sha256(
-            canonical_proof_config.encode("utf-8") if not isinstance(canonical_proof_config, bytes) else canonical_proof_config
+            canonical_proof_config.encode("utf-8")
+            if not isinstance(canonical_proof_config, bytes)
+            else canonical_proof_config
         ).digest()
         return proof_config_hash + transformed_document_hash
 
-    def verify_proof(self, secured_document: dict, raise_on_fail: bool = False) -> Union[str, bool]:
+    def verify_proof(
+        self, secured_document: dict, raise_on_fail: bool = False
+    ) -> Optional[Union[str, bool]]:
         """
         Verifies the proof contained in the secured document.
 
-        This method checks the integrity and authenticity of the secured document 
-        by validating the associated proof. It verifies the signature against the 
+        This method checks the integrity and authenticity of the secured document
+        by validating the associated proof. It verifies the signature against the
         hash of the transformed document and the canonical proof configuration.
 
         Args:
@@ -109,14 +116,17 @@ class ProofVerifier:
                     tuple(proof_options["@context"])
                 ):
                     if raise_on_fail:
-                        raise UnknownSignature
+                        raise UnknownSignatureError
                     return None
             elif isinstance(secured_document["@context"], list):
-                if not any(item.startswith(tuple(proof_options["@context"])) for item in secured_document["@context"] if isinstance(item, str)):
+                if not any(
+                    item.startswith(tuple(proof_options["@context"]))
+                    for item in secured_document["@context"]
+                    if isinstance(item, str)
+                ):
                     if raise_on_fail:
-                        raise UnknownSignature
+                        raise UnknownSignatureError
                     return None
-
 
         unsecured_document.pop("proof")
         transformed_data = self.transform(unsecured_document, proof_options)
@@ -128,14 +138,16 @@ class ProofVerifier:
             return verification_method
         except Exception as e:
             if raise_on_fail:
-                raise VerificationFailed(str(e))
+                raise VerificationFailedError(str(e))
             return None
 
-    def verify(self, secured_document: dict, raise_on_fail: bool = False) -> Union[str, bool]:
+    def verify(
+        self, secured_document: dict, raise_on_fail: bool = False
+    ) -> Optional[Union[str, bool]]:
         """
         An alias for the verify_proof method.
 
-        This method calls verify_proof to perform the actual verification 
+        This method calls verify_proof to perform the actual verification
         of the proof contained in the secured document.
 
         Args:

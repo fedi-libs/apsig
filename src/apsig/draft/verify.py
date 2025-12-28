@@ -1,27 +1,35 @@
-from typing import Optional, Union
 import base64
-from urllib.parse import urlparse
+import datetime
 import json
+from typing import Optional, Union
+from urllib.parse import urlparse
 
 import pytz
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
-from pyfill import datetime
 from typing_extensions import deprecated
 
+from ..exceptions import (
+    MissingSignatureError,
+    UnknownSignatureError,
+    VerificationFailedError,
+)
 from .tools import build_string, calculate_digest
-from ..exceptions import MissingSignature, UnknownSignature, VerificationFailed
 
 
-class draftVerifier:
+class draftVerifier:  # noqa: N801
     @staticmethod
     @deprecated(
         "apsig.draft.verify.draftVerifier is deprecated; use apsig.draft.verify.Verifier instead. This will be removed in apsig 1.0."
     )
     def verify(
-        public_pem: str, method: str, url: str, headers: dict, body: Optional[bytes] = None
+        public_pem: str,
+        method: str,
+        url: str,
+        headers: dict,
+        body: Optional[bytes] = None,
     ) -> tuple[bool, str]:
         """Verifies the digital signature of an HTTP request.
 
@@ -42,7 +50,11 @@ class draftVerifier:
         """
         try:
             result = Verifier(
-                public_pem=public_pem, method=method, url=url, headers=headers, body=body
+                public_pem=public_pem,
+                method=method,
+                url=url,
+                headers=headers,
+                body=body,
             ).verify(raise_on_fail=True)
         except Exception as e:
             return False, str(e)
@@ -53,7 +65,13 @@ class draftVerifier:
 
 class Verifier:
     def __init__(
-        self, public_pem: Union[rsa.RSAPublicKey, str], method: str, url: str, headers: dict, body: bytes | dict | None = None, clock_skew: int = 300
+        self,
+        public_pem: Union[rsa.RSAPublicKey, str],
+        method: str,
+        url: str,
+        headers: dict,
+        body: bytes | dict | None = None,
+        clock_skew: int = 300,
     ) -> None:
         """
         Args:
@@ -66,7 +84,10 @@ class Verifier:
         """
         if isinstance(public_pem, str) or isinstance(public_pem, bytes):
             pk = serialization.load_pem_public_key(
-                public_pem.encode("utf-8") if isinstance(public_pem, str) else public_pem, backend=default_backend()
+                public_pem.encode("utf-8")
+                if isinstance(public_pem, str)
+                else public_pem,
+                backend=default_backend(),
             )
         else:
             pk = public_pem
@@ -78,9 +99,9 @@ class Verifier:
         self.headers_raw = headers
         self.headers = {key.lower(): value for key, value in headers.items()}
         if isinstance(body, dict):
-            self.body = json.dumps(body, separators=(',', ':')).encode("utf-8")
+            self.body = json.dumps(body, separators=(",", ":")).encode("utf-8")
         else:
-            self.body = body
+            self.body = body if body else b""
         self.clock_skew = clock_skew
 
     def __decode_sign(self, signature):
@@ -102,9 +123,7 @@ class Verifier:
         signature_header = headers.get("signature")
         if not signature_header:
             if raise_on_fail:
-                raise MissingSignature(
-                    "Signature header is missing"
-                )
+                raise MissingSignatureError("Signature header is missing")
             return None
 
         signature_parts = {}
@@ -118,7 +137,7 @@ class Verifier:
 
         if algorithm != "rsa-sha256":
             if raise_on_fail:
-                raise UnknownSignature(
+                raise UnknownSignatureError(
                     f"Unsupported algorithm. Algorithm must be rsa-sha256, but passed {algorithm}."
                 )
             return None
@@ -139,7 +158,7 @@ class Verifier:
             expected_digest = calculate_digest(self.body)
             if headers.get("digest") != expected_digest:
                 if raise_on_fail:
-                    raise VerificationFailed("Digest mismatch")
+                    raise VerificationFailedError("Digest mismatch")
                 return None
 
         try:
@@ -148,21 +167,19 @@ class Verifier:
             )
         except InvalidSignature:
             if raise_on_fail:
-                raise VerificationFailed("Invalid signature")
+                raise VerificationFailedError("Invalid signature")
             return None
 
         date_header = headers.get("date")
         if date_header:
-            date = datetime.datetime.datetime.strptime(
-                date_header, "%a, %d %b %Y %H:%M:%S GMT"
-            )
-            gmt_tz = pytz.timezone('GMT')
+            date = datetime.datetime.strptime(date_header, "%a, %d %b %Y %H:%M:%S GMT")
+            gmt_tz = pytz.timezone("GMT")
             gmt_time = gmt_tz.localize(date)
             request_time = gmt_time.astimezone(pytz.utc)
-            current_time = datetime.utcnow()
+            current_time = datetime.datetime.now(datetime.timezone.utc)
             if abs((current_time - request_time).total_seconds()) > self.clock_skew:
                 if raise_on_fail:
-                    raise VerificationFailed(
+                    raise VerificationFailedError(
                         "Date header is too far from current time"
                     )
                 return None

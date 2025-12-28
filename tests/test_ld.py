@@ -1,50 +1,72 @@
-import unittest
-
-from apsig import LDSignature
+import pytest
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from apsig.exceptions import MissingSignature, VerificationFailed, UnknownSignature
+from apsig import LDSignature
+from apsig.exceptions import (
+    MissingSignatureError,
+    UnknownSignatureError,
+    VerificationFailedError,
+)
 
-class TestJsonLdSigner(unittest.TestCase):
-    def setUp(self):
-        self.private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend()
-        )
-        self.public_key = self.private_key.public_key()
-        self.ld = LDSignature()
-        self.data = {
-            "@context": [
-                "https://www.w3.org/ns/activitystreams",
-                "https://w3id.org/security/v1",
-            ],
-            "type": "Note",
-            "content": "Hello, world!"
-        }
-        self.signed_data = self.ld.sign(self.data, "https://example.com/users/johndoe#main-key", private_key=self.private_key)
 
-    def test_sign_and_verify(self):
-        result = self.ld.verify(self.signed_data, self.public_key, raise_on_fail=True)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, "https://example.com/users/johndoe#main-key")
+@pytest.fixture(scope="module")
+def setup_data():
+    private_key = rsa.generate_private_key(
+        public_exponent=65537, key_size=2048, backend=default_backend()
+    )
+    public_key = private_key.public_key()
+    ld = LDSignature()
 
-    def test_verify_invalid_signature_value(self):
-        signed_data = self.ld.sign(self.data, "https://example.com/users/johndoe#main-key", private_key=self.private_key)
-        signed_data["signature"]["signatureValue"] = "invalid_signature"
-        with self.assertRaises(VerificationFailed, msg="LDSignature mismatch"):
-            self.ld.verify(signed_data, self.public_key, raise_on_fail=True)
-        
-    def test_verify_missing_signature(self):
-        with self.assertRaises(MissingSignature, msg="Invalid signature section"):
-            self.ld.verify(self.data, self.public_key, raise_on_fail=True)
-        
-    def test_verify_invalid_signature(self):
-        signed_data = self.ld.sign(self.data, "https://example.com/users/johndoe#main-key", private_key=self.private_key)
-        signed_data["signature"]["type"] = "RsaSignatureHoge"
-        with self.assertRaises(UnknownSignature, msg="Unknown signature type"):
-            self.ld.verify(signed_data, self.public_key, raise_on_fail=True)
+    data = {
+        "@context": [
+            "https://www.w3.org/ns/activitystreams",
+            "https://w3id.org/security/v1",
+        ],
+        "type": "Note",
+        "content": "Hello, world!",
+    }
 
-if __name__ == '__main__':
-    unittest.main()
+    key_id = "https://example.com/users/johndoe#main-key"
+    signed_data = ld.sign(data, key_id, private_key=private_key)
+
+    return {
+        "private_key": private_key,
+        "public_key": public_key,
+        "ld": ld,
+        "data": data,
+        "signed_data": signed_data,
+        "key_id": key_id,
+    }
+
+
+def test_sign_and_verify(setup_data):
+    d = setup_data
+    result = d["ld"].verify(d["signed_data"], d["public_key"], raise_on_fail=True)
+
+    assert isinstance(result, str)
+    assert result == d["key_id"]
+
+
+def test_verify_invalid_signature_value(setup_data):
+    d = setup_data
+    d["signed_data"]["signature"]["signatureValue"] = "invalid_signature"
+
+    with pytest.raises(VerificationFailedError):
+        d["ld"].verify(d["signed_data"], d["public_key"], raise_on_fail=True)
+
+
+def test_verify_missing_signature(setup_data):
+    d = setup_data
+
+    with pytest.raises(MissingSignatureError):
+        d["ld"].verify(d["data"], d["public_key"], raise_on_fail=True)
+
+
+def test_verify_invalid_signature_type(setup_data):
+    d = setup_data
+
+    d["signed_data"]["signature"]["type"] = "RsaSignatureHoge"
+
+    with pytest.raises(UnknownSignatureError):
+        d["ld"].verify(d["signed_data"], d["public_key"], raise_on_fail=True)

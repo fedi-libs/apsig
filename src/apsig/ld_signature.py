@@ -2,7 +2,8 @@
 
 import base64
 import datetime
-from typing import Union
+import json
+from typing import Optional, Union, cast
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
@@ -11,8 +12,11 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from multiformats import multibase, multicodec
 from pyld import jsonld
 
-from .__polyfill.datetime import utcnow
-from .exceptions import MissingSignature, UnknownSignature, VerificationFailed
+from .exceptions import (
+    MissingSignatureError,
+    UnknownSignatureError,
+    VerificationFailedError,
+)
 
 
 class LDSignature:
@@ -37,6 +41,8 @@ class LDSignature:
         norm_form = jsonld.normalize(
             data, {"algorithm": "URDNA2015", "format": "application/n-quads"}
         )
+        if isinstance(norm_form, dict):
+            norm_form = json.dumps(norm_form, ensure_ascii=False)
         digest = hashes.Hash(hashes.SHA256())
         digest.update(norm_form.encode("utf8"))
         return digest.finalize().hex().encode("ascii")
@@ -46,8 +52,8 @@ class LDSignature:
         doc: dict,
         creator: str,
         private_key: rsa.RSAPrivateKey,
-        options: dict = None,
-        created: datetime.datetime = None,
+        options: Optional[dict[str, str | datetime.datetime]] = None,
+        created: Optional[datetime.datetime] = None,
     ):
         """Signs the provided document using the specified RSA private key.
 
@@ -62,14 +68,25 @@ class LDSignature:
         Returns:
             dict: The signed document containing the original data and the signature.
         """
-        options: dict[str, str] = {
+        if created is None:
+            created_str = (
+                datetime.datetime.now(datetime.timezone.utc).strftime(
+                    "%Y-%m-%dT%H:%M:%S.%f"
+                )[:-3]
+                + "Z"
+            )
+        else:
+            created_str = created.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+        default_options: dict[str, str | datetime.datetime] = {
             "@context": "https://w3c-ccg.github.io/security-vocab/contexts/security-v1.jsonld",  # "https://w3id.org/identity/v1"
             "creator": creator,
-            "created": created
-            or utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+            "created": created_str,
         }
+        if options:
+            default_options.update(options)
 
-        to_be_signed = self.__normalized_hash(options) + self.__normalized_hash(
+        to_be_signed = self.__normalized_hash(default_options) + self.__normalized_hash(
             doc
         )
 
@@ -80,7 +97,7 @@ class LDSignature:
         return {
             **doc,
             "signature": {
-                **options,
+                **default_options,
                 "type": "RsaSignature2017",
                 "signatureValue": signature.decode("ascii"),
             },
@@ -102,9 +119,9 @@ class LDSignature:
             bool: True if the signature is valid; otherwise, an exception is raised.
 
         Raises:
-            MissingSignature: If the signature section is missing in the document.
-            UnknownSignature: If the signature type is not recognized.
-            VerificationFailed: If the signature verification fails.
+            MissingSignatureError: If the signature section is missing in the document.
+            UnknownSignatureError: If the signature type is not recognized.
+            VerificationFailedError: If the signature verification fails.
         """
         if isinstance(public_key, str):
             codec, data = multicodec.unwrap(multibase.decode(public_key))
@@ -112,8 +129,9 @@ class LDSignature:
                 if raise_on_fail:
                     raise ValueError("public_key must be RSA PublicKey.")
                 return None
-            public_key = serialization.load_pem_public_key(
-                data, backend=default_backend()
+            public_key = cast(
+                rsa.RSAPublicKey,
+                serialization.load_pem_public_key(data, backend=default_backend()),
             )
         try:
             document = doc.copy()
@@ -125,15 +143,13 @@ class LDSignature:
             }
         except KeyError:
             if raise_on_fail:
-                raise MissingSignature("Invalid signature section")
+                raise MissingSignatureError("Invalid signature section")
             return None
         if signature["type"].lower() != "rsasignature2017":
             if raise_on_fail:
-                raise UnknownSignature("Unknown signature type")
+                raise UnknownSignatureError("Unknown signature type")
             return None
-        final_hash = self.__normalized_hash(options) + self.__normalized_hash(
-            document
-        )
+        final_hash = self.__normalized_hash(options) + self.__normalized_hash(document)
         try:
             public_key.verify(
                 base64.b64decode(signature["signatureValue"]),
@@ -144,5 +160,5 @@ class LDSignature:
             return signature["creator"]
         except InvalidSignature:
             if raise_on_fail:
-                raise VerificationFailed("LDSignature mismatch")
+                raise VerificationFailedError("LDSignature mismatch")
             return None

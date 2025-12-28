@@ -12,5 +12,5 @@ __all__ = [
     "draftSigner",
     "draftVerifier",
     "LDSignature",
-    "KeyUtil"
+    "KeyUtil",
 ]

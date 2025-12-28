@@ -16,7 +16,7 @@ tasks:
     silent: true
   test:
     cmds:
-      - uv run python -m unittest discover -s tests
+      - uv run pytest
     silent: true
   build:
     cmds:

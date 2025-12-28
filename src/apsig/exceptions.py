@@ -1,11 +1,14 @@
 class SignatureError(Exception):
     pass
 
-class MissingSignature(SignatureError):
+
+class MissingSignatureError(SignatureError):
     pass
 
-class UnknownSignature(SignatureError):
+
+class UnknownSignatureError(SignatureError):
     pass
 
-class VerificationFailed(SignatureError):
+
+class VerificationFailedError(SignatureError):
     pass
