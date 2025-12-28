@@ -10,7 +10,7 @@ from apsig.exceptions import (
 )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def setup_data():
     private_key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
