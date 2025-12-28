@@ -24,6 +24,16 @@ for group_name in ["auto", "lint", "test"]:
 
 all_deps = sorted(list(set(main_deps + dev_deps)))
 
+# Exclude pyrefly and ruff from the list of additional dependencies.
+# These tools are the main entry points for the pre-commit hooks and
+# their dependencies are managed by pre-commit itself.
+excluded_packages = ["pyrefly", "ruff"]
+filtered_deps = [
+    dep for dep in all_deps
+    if not any(dep.startswith(pkg) for pkg in excluded_packages)
+]
+
+
 # Check if .pre-commit-config.yaml exists before proceeding
 if not pre_commit_config_path.exists():
     print("'.pre-commit-config.yaml' not found. Skipping.")
@@ -34,7 +44,7 @@ with open(pre_commit_config_path, "r") as fp:
 
 for repo in pre_commit_config.get("repos", []):
     for hook in repo.get("hooks", []):
-        hook["additional_dependencies"] = all_deps
+        hook["additional_dependencies"] = filtered_deps
 
 with open(pre_commit_config_path, "w") as fw:
     noalias_dumper = yaml.dumper.Dumper
