@@ -12,7 +12,6 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from multiformats import multibase, multicodec
 from pyld import jsonld
 
-from .__polyfill.datetime import utcnow
 from .exceptions import MissingSignature, UnknownSignature, VerificationFailed
 
 
@@ -66,10 +65,15 @@ class LDSignature:
             dict: The signed document containing the original data and the signature.
         """
         if created is None:
-            created_str = utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+            created_str = (
+                datetime.datetime.now(datetime.timezone.utc).strftime(
+                    "%Y-%m-%dT%H:%M:%S.%f"
+                )[:-3]
+                + "Z"
+            )
         else:
             created_str = created.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-        
+
         default_options: dict[str, str | datetime.datetime] = {
             "@context": "https://w3c-ccg.github.io/security-vocab/contexts/security-v1.jsonld",  # "https://w3id.org/identity/v1"
             "creator": creator,
@@ -78,9 +82,9 @@ class LDSignature:
         if options:
             default_options.update(options)
 
-        to_be_signed = self.__normalized_hash(default_options) + self.__normalized_hash(
-            doc
-        )
+        to_be_signed = self.__normalized_hash(
+            default_options
+        ) + self.__normalized_hash(doc)
 
         signature = base64.b64encode(
             private_key.sign(to_be_signed, padding.PKCS1v15(), hashes.SHA256())
@@ -121,9 +125,12 @@ class LDSignature:
                 if raise_on_fail:
                     raise ValueError("public_key must be RSA PublicKey.")
                 return None
-            public_key = cast(rsa.RSAPublicKey, serialization.load_pem_public_key(
-                data, backend=default_backend()
-            ))
+            public_key = cast(
+                rsa.RSAPublicKey,
+                serialization.load_pem_public_key(
+                    data, backend=default_backend()
+                ),
+            )
         try:
             document = doc.copy()
             signature = document.pop("signature")

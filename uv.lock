@@ -153,7 +153,6 @@ dependencies = [
     { name = "http-sf" },
     { name = "jcs" },
     { name = "multiformats" },
-    { name = "pyfill" },
     { name = "pyld", extra = ["aiohttp", "requests"] },
     { name = "pytz" },
     { name = "typing-extensions" },
@@ -186,7 +185,6 @@ requires-dist = [
     { name = "http-sf", specifier = ">=1.0.3" },
     { name = "jcs", specifier = ">=0.2.1" },
     { name = "multiformats", specifier = ">=0.3.1.post4" },
-    { name = "pyfill", specifier = ">=0.1.3" },
     { name = "pyld", extras = ["aiohttp", "requests"], specifier = ">=2.0.4" },
     { name = "pytz", specifier = ">=2025.1" },
     { name = "typing-extensions", specifier = ">=4.12.2" },
@@ -1266,15 +1264,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fe/cf/d2d3b9f5699fb1e4615c8e32ff220203e43b248e1dfcc6736ad9057731ca/pycparser-2.23.tar.gz", hash = "sha256:78816d4f24add8f10a06d6f05b4d424ad9e96cfebf68a4ddc99c65c0720d00c2", size = 173734, upload-time = "2025-09-09T13:23:47.91Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/e3/59cd50310fc9b59512193629e1984c1f95e5c8ae6e5d8c69532ccc65a7fe/pycparser-2.23-py3-none-any.whl", hash = "sha256:e5c6e8d3fbad53479cab09ac03729e0a9faf2bee3db8208a550daf5af81a5934", size = 118140, upload-time = "2025-09-09T13:23:46.651Z" },
-]
-
-[[package]]
-name = "pyfill"
-version = "0.1.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/19/31/594dcd00ec7a13e7a847d8b3c14a9be74d785feaf7812f3313bbe2a97854/pyfill-0.1.3.tar.gz", hash = "sha256:f8416ca329c5c61da9323527b3f8f263f9ac71139d00ac3f5d2fa1398afca274", size = 4186, upload-time = "2025-02-28T08:45:22.981Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ea/61/c76ae9a76a0951c2cef4169056433b6900d470575a71af08321f5e46be9f/pyfill-0.1.3-py3-none-any.whl", hash = "sha256:f6057ac9ab418855f278a21b02082a80f969b2decd15229a476c9f74a2f353d7", size = 5039, upload-time = "2025-02-28T08:45:21.687Z" },
 ]
 
 [[package]]
