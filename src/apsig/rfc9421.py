@@ -46,13 +46,6 @@ class RFC9421Signer:
                     headers_new.append(f'"{h}": {v}')
                 else:
                     raise ValueError(f"Missing Value: {h}")
-            elif h == "@signature-params":
-                v = special_keys.get(h)
-
-                if v:
-                    headers_new.append(f'"{h}": {self.__generate_sig_input()}')
-                else:
-                    raise ValueError(f"Missing Value: {h}")
             else:
                 v_raw = headers.get(h)
                 if v_raw is not None:
@@ -286,7 +279,7 @@ class RFC9421Verifier:
                     )
 
                 created = params.get("created")
-                key_id = str(params.get("keyid"))
+                key_id = params.get("keyid")
                 alg = params.get("alg")
 
                 if not created:
@@ -295,6 +288,7 @@ class RFC9421Verifier:
                     raise VerificationFailed("keyid not found.")
                 if not alg:
                     raise VerificationFailed("alg not found.")
+                key_id = str(key_id)
                 if alg not in [
                     "ed25519",
                     "rsa-v1_5-sha256",
