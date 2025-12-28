@@ -5,7 +5,7 @@ import jcs
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from multiformats import multibase, multicodec
 
-from ..exceptions import UnknownSignature, VerificationFailed
+from ..exceptions import UnknownSignatureError, VerificationFailedError
 
 
 class ProofVerifier:
@@ -116,7 +116,7 @@ class ProofVerifier:
                     tuple(proof_options["@context"])
                 ):
                     if raise_on_fail:
-                        raise UnknownSignature
+                        raise UnknownSignatureError
                     return None
             elif isinstance(secured_document["@context"], list):
                 if not any(
@@ -125,7 +125,7 @@ class ProofVerifier:
                     if isinstance(item, str)
                 ):
                     if raise_on_fail:
-                        raise UnknownSignature
+                        raise UnknownSignatureError
                     return None
 
         unsecured_document.pop("proof")
@@ -138,7 +138,7 @@ class ProofVerifier:
             return verification_method
         except Exception as e:
             if raise_on_fail:
-                raise VerificationFailed(str(e))
+                raise VerificationFailedError(str(e))
             return None
 
     def verify(

@@ -1,4 +1,5 @@
 import base64
+import datetime
 import json
 from typing import Optional, Union
 from urllib.parse import urlparse
@@ -8,14 +9,17 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
-import datetime
 from typing_extensions import deprecated
 
-from ..exceptions import MissingSignature, UnknownSignature, VerificationFailed
+from ..exceptions import (
+    MissingSignatureError,
+    UnknownSignatureError,
+    VerificationFailedError,
+)
 from .tools import build_string, calculate_digest
 
 
-class draftVerifier:
+class draftVerifier:  # noqa: N801
     @staticmethod
     @deprecated(
         "apsig.draft.verify.draftVerifier is deprecated; use apsig.draft.verify.Verifier instead. This will be removed in apsig 1.0."
@@ -119,7 +123,7 @@ class Verifier:
         signature_header = headers.get("signature")
         if not signature_header:
             if raise_on_fail:
-                raise MissingSignature("Signature header is missing")
+                raise MissingSignatureError("Signature header is missing")
             return None
 
         signature_parts = {}
@@ -133,7 +137,7 @@ class Verifier:
 
         if algorithm != "rsa-sha256":
             if raise_on_fail:
-                raise UnknownSignature(
+                raise UnknownSignatureError(
                     f"Unsupported algorithm. Algorithm must be rsa-sha256, but passed {algorithm}."
                 )
             return None
@@ -154,7 +158,7 @@ class Verifier:
             expected_digest = calculate_digest(self.body)
             if headers.get("digest") != expected_digest:
                 if raise_on_fail:
-                    raise VerificationFailed("Digest mismatch")
+                    raise VerificationFailedError("Digest mismatch")
                 return None
 
         try:
@@ -163,19 +167,26 @@ class Verifier:
             )
         except InvalidSignature:
             if raise_on_fail:
-                raise VerificationFailed("Invalid signature")
+                raise VerificationFailedError("Invalid signature")
             return None
 
         date_header = headers.get("date")
         if date_header:
-            date = datetime.datetime.strptime(date_header, "%a, %d %b %Y %H:%M:%S GMT")
+            date = datetime.datetime.strptime(
+                date_header, "%a, %d %b %Y %H:%M:%S GMT"
+            )
             gmt_tz = pytz.timezone("GMT")
             gmt_time = gmt_tz.localize(date)
             request_time = gmt_time.astimezone(pytz.utc)
             current_time = datetime.datetime.now(datetime.timezone.utc)
-            if abs((current_time - request_time).total_seconds()) > self.clock_skew:
+            if (
+                abs((current_time - request_time).total_seconds())
+                > self.clock_skew
+            ):
                 if raise_on_fail:
-                    raise VerificationFailed("Date header is too far from current time")
+                    raise VerificationFailedError(
+                        "Date header is too far from current time"
+                    )
                 return None
 
         return key_id

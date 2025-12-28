@@ -4,9 +4,9 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 from apsig import LDSignature
 from apsig.exceptions import (
-    MissingSignature,
-    UnknownSignature,
-    VerificationFailed,
+    MissingSignatureError,
+    UnknownSignatureError,
+    VerificationFailedError,
 )
 
 
@@ -52,14 +52,14 @@ def test_verify_invalid_signature_value(setup_data):
     d = setup_data
     d["signed_data"]["signature"]["signatureValue"] = "invalid_signature"
 
-    with pytest.raises(VerificationFailed):
+    with pytest.raises(VerificationFailedError):
         d["ld"].verify(d["signed_data"], d["public_key"], raise_on_fail=True)
 
 
 def test_verify_missing_signature(setup_data):
     d = setup_data
 
-    with pytest.raises(MissingSignature):
+    with pytest.raises(MissingSignatureError):
         d["ld"].verify(d["data"], d["public_key"], raise_on_fail=True)
 
 
@@ -68,5 +68,5 @@ def test_verify_invalid_signature_type(setup_data):
 
     d["signed_data"]["signature"]["type"] = "RsaSignatureHoge"
 
-    with pytest.raises(UnknownSignature):
+    with pytest.raises(UnknownSignatureError):
         d["ld"].verify(d["signed_data"], d["public_key"], raise_on_fail=True)

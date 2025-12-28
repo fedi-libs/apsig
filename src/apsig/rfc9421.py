@@ -17,7 +17,7 @@ from http_sf.types import (
 from multiformats import multibase, multicodec
 
 from apsig.draft.tools import calculate_digest
-from apsig.exceptions import MissingSignature, VerificationFailed
+from apsig.exceptions import MissingSignatureError, VerificationFailedError
 
 
 class RFC9421Signer:
@@ -177,7 +177,7 @@ class RFC9421Verifier:
         request_time = created_timestamp.astimezone(pytz.utc)
         current_time = dt.datetime.now(dt.timezone.utc)
         if abs((current_time - request_time).total_seconds()) > self.clock_skew:
-            raise VerificationFailed(
+            raise VerificationFailedError(
                 f"property created is too far from current time ({current_time}): {request_time}"
             )
 
@@ -221,13 +221,13 @@ class RFC9421Verifier:
         signature = self.headers.get("signature")
         if not signature:
             if raise_on_fail:
-                raise MissingSignature("Signature header is missing")
+                raise MissingSignatureError("Signature header is missing")
             return None
 
         signature_input = self.headers.get("signature-input")
         if not signature_input:
             if raise_on_fail:
-                raise MissingSignature("Signature-Input header is missing")
+                raise MissingSignatureError("Signature-Input header is missing")
             return None
 
         signature_input_parsed = parse(
@@ -236,12 +236,12 @@ class RFC9421Verifier:
         signature_parsed = parse(signature.encode("utf-8"), tltype="dictionary")
 
         if not isinstance(signature_input_parsed, dict):
-            raise VerificationFailed(
+            raise VerificationFailedError(
                 f"Unsupported Signature-Input type: {type(signature_input_parsed)}"
             )
 
         if not isinstance(signature_parsed, dict):
-            raise VerificationFailed(
+            raise VerificationFailedError(
                 f"Unsupported Signature type: {type(signature_parsed)}"
             )
 
@@ -262,11 +262,11 @@ class RFC9421Verifier:
                 alg = params.get("alg")
 
                 if not created:
-                    raise VerificationFailed("created not found.")
+                    raise VerificationFailedError("created not found.")
                 if not key_id:
-                    raise VerificationFailed("keyid not found.")
+                    raise VerificationFailedError("keyid not found.")
                 if not alg:
-                    raise VerificationFailed("alg not found.")
+                    raise VerificationFailedError("alg not found.")
                 key_id = str(key_id)
                 if alg not in [
                     "ed25519",
@@ -276,12 +276,12 @@ class RFC9421Verifier:
                     "ecdsa-p256-sha256",
                     "ecdsa-p384-sha384",
                 ]:
-                    raise VerificationFailed(f"Unsupported algorithm: {alg}")
+                    raise VerificationFailedError(f"Unsupported algorithm: {alg}")
 
                 sigi = self.__rebuild_sigbase(headers, params)
                 signature_bytes = signature_parsed.get(k)
                 if not isinstance(signature_bytes, tuple):
-                    raise VerificationFailed(
+                    raise VerificationFailedError(
                         f"Unknown Signature: {type(signature_bytes)}"
                     )
 
@@ -298,11 +298,11 @@ class RFC9421Verifier:
                             if not isinstance(
                                 self.public_key, ed25519.Ed25519PublicKey
                             ):
-                                raise VerificationFailed("Algorithm missmatch.")
+                                raise VerificationFailedError("Algorithm missmatch.")
                             self.public_key.verify(sig_val, sigi)
                         case "rsa-v1_5-sha256":
                             if not isinstance(self.public_key, rsa.RSAPublicKey):
-                                raise VerificationFailed("Algorithm missmatch.")
+                                raise VerificationFailedError("Algorithm missmatch.")
                             self.public_key.verify(
                                 sig_val,
                                 sigi,
@@ -311,7 +311,7 @@ class RFC9421Verifier:
                             )
                         case "rsa-v1_5-sha512":
                             if not isinstance(self.public_key, rsa.RSAPublicKey):
-                                raise VerificationFailed("Algorithm missmatch.")
+                                raise VerificationFailedError("Algorithm missmatch.")
                             self.public_key.verify(
                                 sig_val,
                                 sigi,
@@ -320,7 +320,7 @@ class RFC9421Verifier:
                             )
                         case "rsa-pss-sha512":
                             if not isinstance(self.public_key, rsa.RSAPublicKey):
-                                raise VerificationFailed("Algorithm missmatch.")
+                                raise VerificationFailedError("Algorithm missmatch.")
                             self.public_key.verify(
                                 sig_val,
                                 sigi,
@@ -334,7 +334,7 @@ class RFC9421Verifier:
                             if not isinstance(
                                 self.public_key, ec.EllipticCurvePublicKey
                             ):
-                                raise VerificationFailed("Algorithm missmatch.")
+                                raise VerificationFailedError("Algorithm missmatch.")
                             self.public_key.verify(
                                 sig_val,
                                 sigi,
@@ -344,7 +344,7 @@ class RFC9421Verifier:
                             if not isinstance(
                                 self.public_key, ec.EllipticCurvePublicKey
                             ):
-                                raise VerificationFailed("Algorithm missmatch.")
+                                raise VerificationFailedError("Algorithm missmatch.")
                             self.public_key.verify(
                                 sig_val,
                                 sigi,
@@ -353,11 +353,11 @@ class RFC9421Verifier:
                     return key_id
                 except Exception as e:
                     if raise_on_fail:
-                        raise VerificationFailed(str(e))
+                        raise VerificationFailedError(str(e))
                     return None
             except ValueError:
                 continue
 
         if raise_on_fail:
-            raise VerificationFailed("RFC9421 Signature verification failed.")
+            raise VerificationFailedError("RFC9421 Signature verification failed.")
         return None

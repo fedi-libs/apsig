@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from apsig.draft import Signer, Verifier
-from apsig.exceptions import MissingSignature, VerificationFailed
+from apsig.exceptions import MissingSignatureError, VerificationFailedError
 
 
 @pytest.fixture(scope="module")
@@ -115,7 +115,7 @@ def test_too_far_date(keys):
         body=body,
     )
 
-    with pytest.raises(VerificationFailed):
+    with pytest.raises(VerificationFailedError):
         verifier.verify(raise_on_fail=True)
 
 
@@ -137,7 +137,7 @@ def test_verify_invalid_signature(keys):
         body=body,
     )
 
-    with pytest.raises(VerificationFailed):
+    with pytest.raises(VerificationFailedError):
         verifier.verify(raise_on_fail=True)
 
 
@@ -158,5 +158,5 @@ def test_missing_signature_header(keys):
         body=body,
     )
 
-    with pytest.raises(MissingSignature):
+    with pytest.raises(MissingSignatureError):
         verifier.verify(raise_on_fail=True)

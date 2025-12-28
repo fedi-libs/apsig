@@ -1,15 +1,15 @@
-from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
-from cryptography.hazmat.primitives import serialization
+from typing import Optional
 from cryptography.exceptions import InvalidKey
-
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
 from multiformats import multibase, multicodec
 
 
 class KeyUtil:
     def __init__(
         self,
-        public_key: ed25519.Ed25519PublicKey | rsa.RSAPublicKey = None,
-        private_key: ed25519.Ed25519PrivateKey | rsa.RSAPrivateKey = None,
+        public_key: Optional[ed25519.Ed25519PublicKey | rsa.RSAPublicKey] = None,
+        private_key: Optional[ed25519.Ed25519PrivateKey | rsa.RSAPrivateKey] = None,
     ):
         """KeyUtil
 
@@ -19,7 +19,9 @@ class KeyUtil:
         """
         if private_key is None:
             if public_key is None:
-                raise KeyError("If private_key is None, public_key must be set.")
+                raise KeyError(
+                    "If private_key is None, public_key must be set."
+                )
             else:
                 self.public_key = public_key
         else:

@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from multiformats import multibase, multicodec
 from pyld import jsonld
 
-from .exceptions import MissingSignature, UnknownSignature, VerificationFailed
+from .exceptions import MissingSignatureError, UnknownSignatureError, VerificationFailedError
 
 
 class LDSignature:
@@ -115,9 +115,9 @@ class LDSignature:
             bool: True if the signature is valid; otherwise, an exception is raised.
 
         Raises:
-            MissingSignature: If the signature section is missing in the document.
-            UnknownSignature: If the signature type is not recognized.
-            VerificationFailed: If the signature verification fails.
+            MissingSignatureError: If the signature section is missing in the document.
+            UnknownSignatureError: If the signature type is not recognized.
+            VerificationFailedError: If the signature verification fails.
         """
         if isinstance(public_key, str):
             codec, data = multicodec.unwrap(multibase.decode(public_key))
@@ -139,11 +139,11 @@ class LDSignature:
             }
         except KeyError:
             if raise_on_fail:
-                raise MissingSignature("Invalid signature section")
+                raise MissingSignatureError("Invalid signature section")
             return None
         if signature["type"].lower() != "rsasignature2017":
             if raise_on_fail:
-                raise UnknownSignature("Unknown signature type")
+                raise UnknownSignatureError("Unknown signature type")
             return None
         final_hash = self.__normalized_hash(options) + self.__normalized_hash(document)
         try:
@@ -156,5 +156,5 @@ class LDSignature:
             return signature["creator"]
         except InvalidSignature:
             if raise_on_fail:
-                raise VerificationFailed("LDSignature mismatch")
+                raise VerificationFailedError("LDSignature mismatch")
             return None
