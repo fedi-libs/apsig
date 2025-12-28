@@ -142,7 +142,7 @@ class RFC9421Verifier:
             codec, data = multicodec.unwrap(multibase.decode(public_key))
             match codec.name:
                 case "ed25519-pub":
-                    self.public_key: ed25519.Ed25519PublicKey = (
+                    self.public_key = (
                         ed25519.Ed25519PublicKey.from_public_bytes(data)
                     )
                 case "rsa-pub":
@@ -164,7 +164,7 @@ class RFC9421Verifier:
                         "PublicKey must be ed25519 or RSA or ECDSA."
                     )
         else:
-            self.public_key: ed25519.Ed25519PublicKey | rsa.RSAPublicKey = (
+            self.public_key = (
                 public_key
             )
         self.clock_skew = clock_skew
