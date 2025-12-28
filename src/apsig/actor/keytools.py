@@ -1,4 +1,7 @@
+# pyrefly: ignore
+
 from typing import Optional
+
 from cryptography.exceptions import InvalidKey
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
@@ -8,8 +11,12 @@ from multiformats import multibase, multicodec
 class KeyUtil:
     def __init__(
         self,
-        public_key: Optional[ed25519.Ed25519PublicKey | rsa.RSAPublicKey] = None,
-        private_key: Optional[ed25519.Ed25519PrivateKey | rsa.RSAPrivateKey] = None,
+        public_key: Optional[
+            ed25519.Ed25519PublicKey | rsa.RSAPublicKey
+        ] = None,
+        private_key: Optional[
+            ed25519.Ed25519PrivateKey | rsa.RSAPrivateKey
+        ] = None,
     ):
         """KeyUtil
 
