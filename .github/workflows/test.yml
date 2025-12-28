@@ -1,34 +1,39 @@
-name: Test
 permissions:
   contents: read
+name: pytest
 
 on:
-  pull_request:
+  push:
     branches:
       - main
+  pull_request:
+    branches:
+      - develop
 
 jobs:
-  test:
+  pytest:
+    name: Run tests with pytest
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", 3.11, 3.12, 3.13]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
         with:
-            version: ">=0.7.21,<0.8"
-
-      - name: Install Task
-        uses: arduino/setup-task@v2
+            version: ">=0.9.13,<0.10"
+      - name: Set up Python ${{ matrix.python-version }}
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: uv venv --python $PYTHON_VERSION
+      - name: Install Dependencies
+        run: uv sync --dev --locked
+      - name: Run Tests
+        run: uv run pytest --cov=./src/apsig --cov-branch --cov-report=xml
+        
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install dependencies
-        run: task
-      - name: Run tests
-        run: task test
+          token: ${{ secrets.CODECOV_TOKEN }}
