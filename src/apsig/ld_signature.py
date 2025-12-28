@@ -82,9 +82,9 @@ class LDSignature:
         if options:
             default_options.update(options)
 
-        to_be_signed = self.__normalized_hash(
-            default_options
-        ) + self.__normalized_hash(doc)
+        to_be_signed = self.__normalized_hash(default_options) + self.__normalized_hash(
+            doc
+        )
 
         signature = base64.b64encode(
             private_key.sign(to_be_signed, padding.PKCS1v15(), hashes.SHA256())
@@ -127,9 +127,7 @@ class LDSignature:
                 return None
             public_key = cast(
                 rsa.RSAPublicKey,
-                serialization.load_pem_public_key(
-                    data, backend=default_backend()
-                ),
+                serialization.load_pem_public_key(data, backend=default_backend()),
             )
         try:
             document = doc.copy()
@@ -147,9 +145,7 @@ class LDSignature:
             if raise_on_fail:
                 raise UnknownSignature("Unknown signature type")
             return None
-        final_hash = self.__normalized_hash(options) + self.__normalized_hash(
-            document
-        )
+        final_hash = self.__normalized_hash(options) + self.__normalized_hash(document)
         try:
             public_key.verify(
                 base64.b64decode(signature["signatureValue"]),

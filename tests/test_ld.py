@@ -36,14 +36,13 @@ def setup_data():
         "ld": ld,
         "data": data,
         "signed_data": signed_data,
-        "key_id": key_id
+        "key_id": key_id,
     }
+
 
 def test_sign_and_verify(setup_data):
     d = setup_data
-    result = d["ld"].verify(
-        d["signed_data"], d["public_key"], raise_on_fail=True
-    )
+    result = d["ld"].verify(d["signed_data"], d["public_key"], raise_on_fail=True)
 
     assert isinstance(result, str)
     assert result == d["key_id"]

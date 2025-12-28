@@ -29,8 +29,7 @@ all_deps = sorted(list(set(main_deps + dev_deps)))
 # their dependencies are managed by pre-commit itself.
 excluded_packages = ["pyrefly", "ruff"]
 filtered_deps = [
-    dep for dep in all_deps
-    if not any(dep.startswith(pkg) for pkg in excluded_packages)
+    dep for dep in all_deps if not any(dep.startswith(pkg) for pkg in excluded_packages)
 ]
 
 

@@ -18,9 +18,16 @@ def keys():
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     ).decode("utf-8")
-    public_multibase = multicodec.wrap("rsa-pub", multibase.encode(public_pem.encode("utf-8"), "base58btc").encode("utf-8"))
+    public_multibase = multicodec.wrap(
+        "rsa-pub",
+        multibase.encode(public_pem.encode("utf-8"), "base58btc").encode("utf-8"),
+    )
 
-    return {"private": private_key, "public_key": public_key, "public_multibase": public_multibase}
+    return {
+        "private": private_key,
+        "public_key": public_key,
+        "public_multibase": public_multibase,
+    }
 
 
 KEY_ID_RSA = "test-key-rsa-v1_5-sha256"
@@ -156,7 +163,6 @@ def test_missing_signature_input_header(keys):
         "content-length": "10",
         "signature": "sig1=:...",
     }
-
 
     verifier = RFC9421Verifier(
         keys["public_multibase"],
