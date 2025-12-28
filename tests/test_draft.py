@@ -1,12 +1,13 @@
-import unittest
 import email.utils
+import unittest
 
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from apsig.draft import Signer, Verifier
-from apsig.exceptions import VerificationFailed, MissingSignature
+from apsig.exceptions import MissingSignature, VerificationFailed
+
 
 class TestSignatureFunctions(unittest.TestCase):
     @classmethod
@@ -30,7 +31,7 @@ class TestSignatureFunctions(unittest.TestCase):
             "Content-Type": "application/json",
             "Date": date,
         }
-        body = '{"key": "value"}'
+        body = b'{"key": "value"}'
 
         signer = Signer(
             headers=headers,
@@ -47,7 +48,7 @@ class TestSignatureFunctions(unittest.TestCase):
             method=method,
             url=url,
             headers=signed_headers,
-            body=body.encode("utf-8"),
+            body=body,
         )
 
         result = verifier.verify(raise_on_fail=True)
@@ -93,7 +94,7 @@ class TestSignatureFunctions(unittest.TestCase):
             "Content-Type": "application/json",
             "Date": "Wed, 21 Oct 2015 07:28:00 GMT",
         }
-        body = '{"key": "value"}'
+        body = b'{"key": "value"}'
 
         signer = Signer(
             headers=headers,
@@ -110,10 +111,12 @@ class TestSignatureFunctions(unittest.TestCase):
             method=method,
             url=url,
             headers=signed_headers,
-            body=body.encode("utf-8"),
+            body=body,
         )
 
-        with self.assertRaises(VerificationFailed, msg="Date header is too far from current time"):
+        with self.assertRaises(
+            VerificationFailed, msg="Date header is too far from current time"
+        ):
             verifier.verify(raise_on_fail=True)
 
     def test_verify_invalid_signature(self):
@@ -153,7 +156,9 @@ class TestSignatureFunctions(unittest.TestCase):
             body=body.encode("utf-8"),
         )
 
-        with self.assertRaises(MissingSignature, msg="Signature header is missing"):
+        with self.assertRaises(
+            MissingSignature, msg="Signature header is missing"
+        ):
             verifier.verify(raise_on_fail=True)
 
 

@@ -4,8 +4,8 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from apsig import KeyUtil
 
-class TestSignatureFunctions(unittest.TestCase):
 
+class TestSignatureFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.private_key = ed25519.Ed25519PrivateKey.generate()
@@ -31,5 +31,6 @@ class TestSignatureFunctions(unittest.TestCase):
 
         self.assertTrue(success)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

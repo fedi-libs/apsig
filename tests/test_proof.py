@@ -1,9 +1,9 @@
 import unittest
 
 from cryptography.hazmat.primitives.asymmetric import ed25519
+from multiformats import multibase, multicodec
 
 from apsig import ProofSigner, ProofVerifier
-from multiformats import multibase, multicodec
 
 
 class TestProofSignerVerifier(unittest.TestCase):
@@ -11,8 +11,18 @@ class TestProofSignerVerifier(unittest.TestCase):
     def setUpClass(cls):
         cls.private_key = ed25519.Ed25519PrivateKey.generate()
         cls.public_key = cls.private_key.public_key()
-        cls.private_key_multibase = multibase.encode((multicodec.wrap("ed25519-priv", cls.private_key.private_bytes_raw())), base="base58btc")
-        cls.public_key_multibase = multibase.encode((multicodec.wrap("ed25519-pub", cls.public_key.public_bytes_raw())), base="base58btc")
+        cls.private_key_multibase = multibase.encode(
+            (
+                multicodec.wrap(
+                    "ed25519-priv", cls.private_key.private_bytes_raw()
+                )
+            ),
+            base="base58btc",
+        )
+        cls.public_key_multibase = multibase.encode(
+            (multicodec.wrap("ed25519-pub", cls.public_key.public_bytes_raw())),
+            base="base58btc",
+        )
         cls.time = "2024-01-01T09:00:00Z"
         cls.publickey_url = "https://server.example/keys/test#ed25519-key"
 
@@ -29,12 +39,15 @@ class TestProofSignerVerifier(unittest.TestCase):
         }
 
         signer = ProofSigner(self.private_key)
-        signed_object = signer.sign(json_object, {
-            "type": "DataIntegrityProof",
-            "cryptosuite": "eddsa-jcs-2022",
-            "verificationMethod": "https://example.com/keys/1",
-            "created": self.time,
-        })
+        signed_object = signer.sign(
+            json_object,
+            {
+                "type": "DataIntegrityProof",
+                "cryptosuite": "eddsa-jcs-2022",
+                "verificationMethod": "https://example.com/keys/1",
+                "created": self.time,
+            },
+        )
 
         verifier = ProofVerifier(self.public_key)
         result = verifier.verify(signed_object)
@@ -55,12 +68,15 @@ class TestProofSignerVerifier(unittest.TestCase):
         }
 
         signer = ProofSigner(self.private_key)
-        signed_object = signer.sign(json_object, {
-            "type": "DataIntegrityProof",
-            "cryptosuite": "eddsa-jcs-2022",
-            "verificationMethod": "https://example.com/keys/1",
-            "created": self.time,
-        })
+        signed_object = signer.sign(
+            json_object,
+            {
+                "type": "DataIntegrityProof",
+                "cryptosuite": "eddsa-jcs-2022",
+                "verificationMethod": "https://example.com/keys/1",
+                "created": self.time,
+            },
+        )
 
         signed_object["proof"]["proofValue"] = (
             "zLaewdp4H9kqtwyrLatK4cjY5oRHwVcw4gibPSUDYDMhi4M49v8pcYk3ZB6D69dNpAPbUmY8ocuJ3m9KhKJEEg7z"  # Dummy Text
