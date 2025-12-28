@@ -65,6 +65,9 @@ lint = [
     "pyrefly>=0.46.0",
     "ruff>=0.14.10",
 ]
+test = [
+    "pytest>=9.0.2",
+]
 
 [tool.ruff]
 exclude = [
