@@ -12,7 +12,11 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from multiformats import multibase, multicodec
 from pyld import jsonld
 
-from .exceptions import MissingSignatureError, UnknownSignatureError, VerificationFailedError
+from .exceptions import (
+    MissingSignatureError,
+    UnknownSignatureError,
+    VerificationFailedError,
+)
 
 
 class LDSignature:

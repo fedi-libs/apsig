@@ -11,7 +11,7 @@ from typing_extensions import deprecated
 from .tools import build_string, calculate_digest
 
 
-class draftSigner: # noqa: N801
+class draftSigner:  # noqa: N801
     @staticmethod
     @deprecated(
         "apsig.draft.sign.draftSigner is deprecated; use apsig.draft.sign.Signer instead. This will be removed in apsig 1.0."

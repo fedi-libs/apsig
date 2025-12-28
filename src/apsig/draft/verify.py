@@ -172,17 +172,12 @@ class Verifier:
 
         date_header = headers.get("date")
         if date_header:
-            date = datetime.datetime.strptime(
-                date_header, "%a, %d %b %Y %H:%M:%S GMT"
-            )
+            date = datetime.datetime.strptime(date_header, "%a, %d %b %Y %H:%M:%S GMT")
             gmt_tz = pytz.timezone("GMT")
             gmt_time = gmt_tz.localize(date)
             request_time = gmt_time.astimezone(pytz.utc)
             current_time = datetime.datetime.now(datetime.timezone.utc)
-            if (
-                abs((current_time - request_time).total_seconds())
-                > self.clock_skew
-            ):
+            if abs((current_time - request_time).total_seconds()) > self.clock_skew:
                 if raise_on_fail:
                     raise VerificationFailedError(
                         "Date header is too far from current time"
