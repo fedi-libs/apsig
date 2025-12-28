@@ -152,14 +152,7 @@ class RFC9421Verifier:
                             "PublicKey must be ed25519 or RSA or ECDSA."
                         )
                     self.public_key = pubkey
-                case "p256-pub":
-                    pubkey = serialization.load_pem_public_key(data)
-                    if not isinstance(pubkey, ec.EllipticCurvePublicKey):
-                        raise TypeError(
-                            "PublicKey must be ed25519 or RSA or ECDSA."
-                        )
-                    self.public_key = pubkey
-                case "p384-pub":
+                case "p256-pub" | "p384-pub":
                     pubkey = serialization.load_pem_public_key(data)
                     if not isinstance(pubkey, ec.EllipticCurvePublicKey):
                         raise TypeError(
