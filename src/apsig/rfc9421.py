@@ -71,7 +71,7 @@ class RFC9421Signer:
     def __generate_sig_input(self):
         param = "("
         target_len = len(self.sign_headers)
-        timestamp = dt.datetime.now(dt.UTC)
+        timestamp = dt.datetime.now(dt.timezone.utc)
         for p in self.sign_headers:
             param += f'"{p}"'
             if p != self.sign_headers[target_len - 1]:
@@ -209,7 +209,7 @@ class RFC9421Verifier:
         else:
             raise ValueError("Unknown created value")
         request_time = created_timestamp.astimezone(pytz.utc)
-        current_time = dt.datetime.now(dt.UTC)
+        current_time = dt.datetime.now(dt.timezone.utc)
         if abs((current_time - request_time).total_seconds()) > self.clock_skew:
             raise VerificationFailed(
                 f"property created is too far from current time ({current_time}): {request_time}"
