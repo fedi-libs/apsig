@@ -1,0 +1,78 @@
+repos:
+- hooks:
+  - additional_dependencies:
+    - authlib>=1.6.0
+    - cryptography>=43.0.1
+    - git-cliff>=2.10.0
+    - http-sf>=1.0.3
+    - jcs>=0.2.1
+    - multiformats>=0.3.1.post4
+    - pyld[aiohttp,requests]>=2.0.4
+    - pyrefly>=0.46.0
+    - pytest-cov>=7.0.0
+    - pytest>=9.0.2
+    - pytz>=2025.1
+    - pyyaml>=6.0.3
+    - ruff>=0.14.10
+    - typing-extensions>=4.12.2
+    args:
+    - --fix
+    description: Run 'ruff' for extremely fast Python linting
+    entry: ruff check --force-exclude
+    id: ruff
+    language: python
+    minimum_pre_commit_version: 2.9.2
+    name: ruff
+    require_serial: true
+    types_or:
+    - python
+    - pyi
+  - additional_dependencies:
+    - authlib>=1.6.0
+    - cryptography>=43.0.1
+    - git-cliff>=2.10.0
+    - http-sf>=1.0.3
+    - jcs>=0.2.1
+    - multiformats>=0.3.1.post4
+    - pyld[aiohttp,requests]>=2.0.4
+    - pyrefly>=0.46.0
+    - pytest-cov>=7.0.0
+    - pytest>=9.0.2
+    - pytz>=2025.1
+    - pyyaml>=6.0.3
+    - ruff>=0.14.10
+    - typing-extensions>=4.12.2
+    args: []
+    description: Run 'ruff format' for extremely fast Python formatting
+    entry: ruff format --force-exclude
+    id: ruff-format
+    language: python
+    minimum_pre_commit_version: 2.9.2
+    name: ruff-format
+    require_serial: true
+    types_or:
+    - python
+    - pyi
+  repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.1.6
+- hooks:
+  - additional_dependencies:
+    - authlib>=1.6.0
+    - cryptography>=43.0.1
+    - git-cliff>=2.10.0
+    - http-sf>=1.0.3
+    - jcs>=0.2.1
+    - multiformats>=0.3.1.post4
+    - pyld[aiohttp,requests]>=2.0.4
+    - pyrefly>=0.46.0
+    - pytest-cov>=7.0.0
+    - pytest>=9.0.2
+    - pytz>=2025.1
+    - pyyaml>=6.0.3
+    - ruff>=0.14.10
+    - typing-extensions>=4.12.2
+    id: pyrefly-check
+    name: Pyrefly (type checking)
+    pass_filenames: false
+  repo: https://github.com/facebook/pyrefly-pre-commit
+  rev: 0.46.0
