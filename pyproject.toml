@@ -56,10 +56,12 @@ version-file = "src/apsig/_version.py"
 
 [dependency-groups]
 dev = [
+  {include-group = "auto"},
+  {include-group = "lint"},
+  {include-group = "test"}
+]
+auto = [
     "git-cliff>=2.10.0",
-    "aiohttp>=3.11.12",
-    "notturno[asgi]>=0.1.4",
-    "trio>=0.28.0",
 ]
 lint = [
     "pyrefly>=0.46.0",
