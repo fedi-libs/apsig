@@ -5,7 +5,8 @@ import json
 from typing import Any, List, Tuple, cast
 
 import pytz
-from cryptography.hazmat.primitives.asymmetric import ed25519
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, padding, rsa
 from http_sf import parse
 from http_sf.types import (
     BareItemType,
@@ -20,7 +21,7 @@ from apsig.exceptions import MissingSignature, VerificationFailed
 
 
 class RFC9421Signer:
-    def __init__(self, private_key: ed25519.Ed25519PrivateKey, key_id: str):
+    def __init__(self, private_key: rsa.RSAPrivateKey, key_id: str):
         self.private_key = private_key
         self.key_id = key_id
         self.sign_headers = [
@@ -77,7 +78,7 @@ class RFC9421Signer:
                 param += " "
         param += ");"
         param += f"created={int(timestamp.timestamp())};"
-        param += 'alg="ed25519";'
+        param += 'alg="rsa-v1_5-sha256";'
         param += f'keyid="{self.key_id}"'
         return param
 
@@ -105,7 +106,9 @@ class RFC9421Signer:
         }
 
         base = self.__build_signature_base(special_keys, headers)
-        signed = self.private_key.sign(base)
+        signed = self.private_key.sign(
+            base, padding.PKCS1v15(), hashes.SHA256()
+        )
         headers_req = headers.copy()
         headers_req["Signature"] = (
             f"sig1=:{self.generate_signature_header(signed)}:"
@@ -118,7 +121,10 @@ class RFC9421Signer:
 class RFC9421Verifier:
     def __init__(
         self,
-        public_key: ed25519.Ed25519PublicKey | str,
+        public_key: ed25519.Ed25519PublicKey
+        | rsa.RSAPublicKey
+        | ec.EllipticCurvePublicKey
+        | str,
         method: str,
         path: str,
         host: str,
@@ -126,15 +132,48 @@ class RFC9421Verifier:
         body: bytes | dict | None = None,
         clock_skew: int = 300,
     ):
+        self.public_key: (
+            ed25519.Ed25519PublicKey
+            | rsa.RSAPublicKey
+            | ec.EllipticCurvePublicKey
+        )
+
         if isinstance(public_key, str):
             codec, data = multicodec.unwrap(multibase.decode(public_key))
-            if codec.name != "ed25519-pub":
-                raise TypeError("PublicKey must be ed25519.")
-            self.public_key: ed25519.Ed25519PublicKey = (
-                ed25519.Ed25519PublicKey.from_public_bytes(data)
-            )
+            match codec.name:
+                case "ed25519-pub":
+                    self.public_key: ed25519.Ed25519PublicKey = (
+                        ed25519.Ed25519PublicKey.from_public_bytes(data)
+                    )
+                case "rsa-pub":
+                    pubkey = serialization.load_pem_public_key(data)
+                    if not isinstance(pubkey, rsa.RSAPublicKey):
+                        raise TypeError(
+                            "PublicKey must be ed25519 or RSA or ECDSA."
+                        )
+                    self.public_key = pubkey
+                case "p256-pub":
+                    pubkey = serialization.load_pem_public_key(data)
+                    if not isinstance(pubkey, ec.EllipticCurvePublicKey):
+                        raise TypeError(
+                            "PublicKey must be ed25519 or RSA or ECDSA."
+                        )
+                    self.public_key = pubkey
+                case "p384-pub":
+                    pubkey = serialization.load_pem_public_key(data)
+                    if not isinstance(pubkey, ec.EllipticCurvePublicKey):
+                        raise TypeError(
+                            "PublicKey must be ed25519 or RSA or ECDSA."
+                        )
+                    self.public_key = pubkey
+                case _:
+                    raise TypeError(
+                        "PublicKey must be ed25519 or RSA or ECDSA."
+                    )
         else:
-            self.public_key: ed25519.Ed25519PublicKey = public_key
+            self.public_key: ed25519.Ed25519PublicKey | rsa.RSAPublicKey = (
+                public_key
+            )
         self.clock_skew = clock_skew
         self.method = method.upper()
         self.path = path
@@ -263,7 +302,12 @@ class RFC9421Verifier:
                     raise VerificationFailed("keyid not found.")
                 if not alg:
                     raise VerificationFailed("alg not found.")
-                if alg != "ed25519":
+                if alg not in [
+                    "ed25519",
+                    "rsa-v1_5-sha256",
+                    "rsa-v1_5-sha512",
+                    "rsa-pss-sha512",
+                ]:
                     raise VerificationFailed(f"Unsupported algorithm: {alg}")
 
                 sigi = self.__rebuild_sigbase(headers, params)
@@ -281,7 +325,69 @@ class RFC9421Verifier:
                 if sig_val is None:
                     raise ValueError("No Signature found.")
                 try:
-                    self.public_key.verify(sig_val, sigi)
+                    match alg:
+                        case "ed25519":
+                            if not isinstance(
+                                self.public_key, ed25519.Ed25519PublicKey
+                            ):
+                                raise VerificationFailed("Algorithm missmatch.")
+                            self.public_key.verify(sig_val, sigi)
+                        case "rsa-v1_5-sha256":
+                            if not isinstance(
+                                self.public_key, rsa.RSAPublicKey
+                            ):
+                                raise VerificationFailed("Algorithm missmatch.")
+                            self.public_key.verify(
+                                sig_val,
+                                sigi,
+                                padding.PKCS1v15(),
+                                hashes.SHA256(),
+                            )
+                        case "rsa-v1_5-sha512":
+                            if not isinstance(
+                                self.public_key, rsa.RSAPublicKey
+                            ):
+                                raise VerificationFailed("Algorithm missmatch.")
+                            self.public_key.verify(
+                                sig_val,
+                                sigi,
+                                padding.PKCS1v15(),
+                                hashes.SHA512(),
+                            )
+                        case "rsa-pss-sha512":
+                            if not isinstance(
+                                self.public_key, rsa.RSAPublicKey
+                            ):
+                                raise VerificationFailed("Algorithm missmatch.")
+                            self.public_key.verify(
+                                sig_val,
+                                sigi,
+                                padding.PSS(
+                                    mgf=padding.MGF1(hashes.SHA512()),
+                                    salt_length=hashes.SHA512().digest_size,
+                                ),
+                                hashes.SHA512(),
+                            )
+                        case "ecdsa-p256-sha256":
+                            if not isinstance(
+                                self.public_key, ec.EllipticCurvePublicKey
+                            ):
+                                raise VerificationFailed("Algorithm missmatch.")
+                            self.public_key.verify(
+                                sig_val,
+                                sigi,
+                                ec.ECDSA(hashes.SHA256()),
+                            )
+                        case "ecdsa-p384-sha384":
+                            if not isinstance(
+                                self.public_key, ec.EllipticCurvePublicKey
+                            ):
+                                raise VerificationFailed("Algorithm missmatch.")
+                            self.public_key.verify(
+                                sig_val,
+                                sigi,
+                                ec.ECDSA(hashes.SHA384()),
+                            )
                     return key_id
                 except Exception as e:
                     if raise_on_fail:
@@ -293,5 +399,3 @@ class RFC9421Verifier:
         if raise_on_fail:
             raise VerificationFailed("RFC9421 Signature verification failed.")
         return None
-
-
