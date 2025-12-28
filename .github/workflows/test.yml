@@ -5,10 +5,10 @@ name: pytest
 on:
   push:
     branches:
-      - main
+      - stable
   pull_request:
     branches:
-      - develop
+      - main
 
 jobs:
   pytest:
