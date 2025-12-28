@@ -1,22 +1,36 @@
 import pytest
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from multiformats import multibase, multicodec
 
 from apsig.exceptions import MissingSignature, VerificationFailed
 from apsig.rfc9421 import RFC9421Signer, RFC9421Verifier
 
-private_key_rsa = rsa.generate_private_key(
-    public_exponent=65537,
-    key_size=2048,
-)
-public_key_rsa = private_key_rsa.public_key()
+
+@pytest.fixture(scope="module")
+def keys():
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+    public_key = private_key.public_key()
+    public_pem = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    ).decode("utf-8")
+    public_multibase = multicodec.wrap("rsa-pub", multibase.encode(public_pem.encode("utf-8"), "base58btc").encode("utf-8"))
+
+    return {"private": private_key, "public_key": public_key, "public_multibase": public_multibase}
+
+
 KEY_ID_RSA = "test-key-rsa-v1_5-sha256"
 
 
-def test_sign_and_verify_success():
+def test_sign_and_verify_success(keys):
     """
     Tests successful signing and verification of a request using RSA.
     """
-    signer = RFC9421Signer(private_key_rsa, KEY_ID_RSA)
+    signer = RFC9421Signer(keys["private"], KEY_ID_RSA)
     method = "POST"
     path = "/foo"
     host = "example.com"
@@ -28,7 +42,7 @@ def test_sign_and_verify_success():
     signed_headers = signer.sign(method, path, host, headers, body)
 
     verifier = RFC9421Verifier(
-        public_key_rsa,
+        keys["public_key"],
         method,
         path,
         host,
@@ -39,11 +53,11 @@ def test_sign_and_verify_success():
     assert verified_key_id == KEY_ID_RSA
 
 
-def test_verification_fail_on_wrong_key():
+def test_verification_fail_on_wrong_key(keys):
     """
     Tests that verification fails when using the wrong public key.
     """
-    signer = RFC9421Signer(private_key_rsa, KEY_ID_RSA)
+    signer = RFC9421Signer(keys["private"], KEY_ID_RSA)
     method = "POST"
     path = "/foo"
     host = "example.com"
@@ -72,11 +86,11 @@ def test_verification_fail_on_wrong_key():
         verifier.verify(raise_on_fail=True)
 
 
-def test_verification_fail_on_tampered_header():
+def test_verification_fail_on_tampered_header(keys):
     """
     Tests that verification fails if a signed header is tampered with.
     """
-    signer = RFC9421Signer(private_key_rsa, KEY_ID_RSA)
+    signer = RFC9421Signer(keys["private"], KEY_ID_RSA)
     method = "POST"
     path = "/foo"
     host = "example.com"
@@ -90,7 +104,7 @@ def test_verification_fail_on_tampered_header():
     signed_headers["date"] = "this is not a date"
 
     verifier = RFC9421Verifier(
-        public_key_rsa,
+        keys["public_multibase"],
         method,
         path,
         host,
@@ -101,7 +115,7 @@ def test_verification_fail_on_tampered_header():
         verifier.verify(raise_on_fail=True)
 
 
-def test_missing_signature_header():
+def test_missing_signature_header(keys):
     """
     Tests that verification fails if the Signature header is missing.
     """
@@ -116,7 +130,7 @@ def test_missing_signature_header():
     }
 
     verifier = RFC9421Verifier(
-        public_key_rsa,
+        keys["public_multibase"],
         method,
         path,
         host,
@@ -129,7 +143,7 @@ def test_missing_signature_header():
     assert verifier.verify() is None
 
 
-def test_missing_signature_input_header():
+def test_missing_signature_input_header(keys):
     """
     Tests that verification fails if the Signature-Input header is missing.
     """
@@ -143,8 +157,9 @@ def test_missing_signature_input_header():
         "signature": "sig1=:...",
     }
 
+
     verifier = RFC9421Verifier(
-        public_key_rsa,
+        keys["public_multibase"],
         method,
         path,
         host,
