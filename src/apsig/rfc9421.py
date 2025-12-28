@@ -307,6 +307,8 @@ class RFC9421Verifier:
                     "rsa-v1_5-sha256",
                     "rsa-v1_5-sha512",
                     "rsa-pss-sha512",
+                    "ecdsa-p256-sha256",
+                    "ecdsa-p384-sha384",
                 ]:
                     raise VerificationFailed(f"Unsupported algorithm: {alg}")
 
