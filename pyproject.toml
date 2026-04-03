@@ -13,7 +13,6 @@ dependencies = [
     "typing-extensions>=4.12.2",
     "pytz>=2025.1",
     "http-sf>=1.0.3",
-    "authlib>=1.6.0",
 ]
 classifiers = [
         'Development Status :: 4 - Beta',
